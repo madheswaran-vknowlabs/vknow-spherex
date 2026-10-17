@@ -1,26 +1,101 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    
+    /* Brand #00B0EF - VKnow Vivid Cyan */
+    --primary: #00b0ef;
+    --primary-foreground: #ffffff;
+    --primary-hover: #009ad4;
+    --primary-light: #e0f6fd;
+    --primary-dark: #007ea8;
+    
+    /* Brand Charcoal #585858 */
+    --secondary: #f1f5f9;
+    --secondary-foreground: #334155;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent: #e0f6fd;
+    --accent-foreground: #007ea8;
+    
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    
+    --border: #e2e8f0;
+    --input: #e2e8f0;
+    --ring: #00b0ef;
+    --radius: 0.75rem;
+
+    /* Health indicator colors */
+    --health-green: #10b981;
+    --health-amber: #f59e0b;
+    --health-red: #ef4444;
+  }
+
+  .dark {
+    --background: #090d16;
+    --foreground: #f8fafc;
+    --card: #0f172a;
+    --card-foreground: #f8fafc;
+    --popover: #0f172a;
+    --popover-foreground: #f8fafc;
+    
+    --primary: #00b0ef;
+    --primary-foreground: #ffffff;
+    --primary-hover: #38c5f5;
+    --primary-light: #0d2838;
+    --primary-dark: #009ad4;
+    
+    --secondary: #1e293b;
+    --secondary-foreground: #f1f5f9;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --accent: #0f2e42;
+    --accent-foreground: #38c5f5;
+    
+    --destructive: #7f1d1d;
+    --destructive-foreground: #fecaca;
+    
+    --border: #1e293b;
+    --input: #1e293b;
+    --ring: #00b0ef;
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Custom utility classes */
+.brand-gradient {
+  background: linear-gradient(135deg, #00b0ef 0%, #007ea8 100%);
+}
+
+.brand-gradient-subtle {
+  background: linear-gradient(135deg, #e0f6fd 0%, #f0f9ff 100%);
+}
+
+.dark .brand-gradient-subtle {
+  background: linear-gradient(135deg, #0a1e2c 0%, #090d16 100%);
+}
+
+.brand-glow {
+  box-shadow: 0 0 25px -5px rgba(0, 176, 239, 0.35);
+}
+
+.brand-card-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -10px rgba(0, 176, 239, 0.15);
 }
