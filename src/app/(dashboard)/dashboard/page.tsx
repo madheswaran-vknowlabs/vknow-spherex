@@ -40,13 +40,29 @@ import {
   Legend,
 } from "recharts";
 
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("ALL");
   const [healthFilter, setHealthFilter] = useState<string>("ALL");
   const [activeTab, setActiveTab] = useState<"overview" | "gantt" | "team" | "projects">("overview");
   const [isMounted, setIsMounted] = useState(false);
+
+  // Strict role enforcement: Non-admins cannot view dashboard
+  useEffect(() => {
+    if (status === "authenticated") {
+      const role = (session?.user as any)?.role;
+      if (role !== "admin") {
+        router.replace("/my-work");
+      }
+    }
+  }, [session, status, router]);
 
   useEffect(() => {
     setIsMounted(true);

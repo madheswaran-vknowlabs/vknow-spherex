@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,8 +48,16 @@ export default function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const isAdmin = (session?.user as any)?.role === "admin";
+
+  // Strict role enforcement: Non-admins cannot manage project lifecycle
+  useEffect(() => {
+    if (status === "authenticated" && !isAdmin) {
+      router.replace("/my-work");
+    }
+  }, [status, isAdmin, router]);
 
   const [projectData, setProjectData] = useState<any>(null);
   const [loading, setLoading] = useState(true);

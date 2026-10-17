@@ -16,8 +16,23 @@ import {
   Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function CompliancePage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Strict role enforcement
+  useEffect(() => {
+    if (status === "authenticated") {
+      const role = (session?.user as any)?.role;
+      if (role !== "admin") {
+        router.replace("/my-work");
+      }
+    }
+  }, [session, status, router]);
+
   const [offset, setOffset] = useState<number>(0); // 0 = current week, -1 = last week, etc.
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);

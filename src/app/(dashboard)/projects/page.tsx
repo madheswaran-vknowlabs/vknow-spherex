@@ -21,14 +21,29 @@ import {
   Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function ProjectsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedHealth, setSelectedHealth] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+
+  // Strict role enforcement: Non-admins cannot view portfolio list
+  useEffect(() => {
+    if (status === "authenticated") {
+      const role = (session?.user as any)?.role;
+      if (role !== "admin") {
+        router.replace("/my-work");
+      }
+    }
+  }, [session, status, router]);
 
   const fetchProjects = () => {
     setLoading(true);

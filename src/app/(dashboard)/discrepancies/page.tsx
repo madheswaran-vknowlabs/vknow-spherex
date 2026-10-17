@@ -24,6 +24,9 @@ import { Badge } from "@/components/ui/badge";
 import { RaiseDiscrepancyModal } from "@/components/discrepancies/RaiseDiscrepancyModal";
 import { ResolveDiscrepancyModal } from "@/components/discrepancies/ResolveDiscrepancyModal";
 import { formatDistanceToNow, format } from "date-fns";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const TYPE_ICONS: Record<string, any> = {
   "Scope Change": Layers,
@@ -35,6 +38,19 @@ const TYPE_ICONS: Record<string, any> = {
 };
 
 export default function DiscrepanciesPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Strict role enforcement: Non-admins are redirected to /my-work
+  useEffect(() => {
+    if (status === "authenticated") {
+      const role = (session?.user as any)?.role;
+      if (role !== "admin") {
+        router.replace("/my-work");
+      }
+    }
+  }, [session, status, router]);
+
   const [projectFilter, setProjectFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [severityFilter, setSeverityFilter] = useState("ALL");

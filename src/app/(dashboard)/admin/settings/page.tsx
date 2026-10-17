@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const DAYS_OF_WEEK = [
   { value: 1, label: "Monday" },
@@ -29,6 +31,19 @@ const DAYS_OF_WEEK = [
 ];
 
 export default function AdminSettingsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Strict role enforcement
+  useEffect(() => {
+    if (status === "authenticated") {
+      const role = (session?.user as any)?.role;
+      if (role !== "admin") {
+        router.replace("/my-work");
+      }
+    }
+  }, [session, status, router]);
+
   const queryClient = useQueryClient();
 
   const [warningDays, setWarningDays] = useState(2);
