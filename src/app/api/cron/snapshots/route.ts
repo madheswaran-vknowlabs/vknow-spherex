@@ -26,7 +26,9 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const periodType = req.nextUrl.searchParams.get("period") || "weekly";
+    const periodParam = req.nextUrl.searchParams.get("period");
+    const periodType: "weekly" | "monthly" | "yearly" =
+      periodParam === "monthly" || periodParam === "yearly" ? periodParam : "weekly";
     const now = new Date();
     const periodStart = startOfWeek(now, { weekStartsOn: 1 });
 
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
     const totalLogged = tasks.reduce((acc, t) => acc + (t.loggedHours || 0), 0);
     const totalLag = projects.reduce((acc, p) => acc + (p.lagInDays || 0), 0);
 
-    const snapshot = await ReportSnapshot.create({
+    const snapshot: any = await ReportSnapshot.create({
       projectId: null, // Portfolio-wide
       periodType,
       periodStart,

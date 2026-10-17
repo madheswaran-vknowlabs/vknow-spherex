@@ -52,12 +52,7 @@ export default function ProjectDetailPage({
   const router = useRouter();
   const isAdmin = (session?.user as any)?.role === "admin";
 
-  // Strict role enforcement: Non-admins cannot manage project lifecycle
-  useEffect(() => {
-    if (status === "authenticated" && !isAdmin) {
-      router.replace("/my-work");
-    }
-  }, [status, isAdmin, router]);
+  // Role enforcement handled in fetchProject: non-admin non-members redirected to /my-work
 
   const [projectData, setProjectData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -124,8 +119,10 @@ export default function ProjectDetailPage({
           if (!selectedStageId && res.data.stages?.length > 0) {
             const currentStage =
               res.data.stages.find((s: any) => s.status === "In Progress") || res.data.stages[0];
-            setSelectedStageId(currentStage._id);
+            setSelectedStageId(String(currentStage._id));
           }
+        } else {
+          router.replace("/my-work");
         }
       })
       .catch(console.error)
@@ -165,8 +162,11 @@ export default function ProjectDetailPage({
 
   const { project, stages, tasks, discrepancies } = projectData;
   const currentSelectedStage =
-    stages.find((s: any) => s._id === selectedStageId) || stages[0];
-  const stageTasks = tasks.filter((t: any) => t.stageId === currentSelectedStage?._id);
+    stages.find((s: any) => String(s._id) === String(selectedStageId)) || stages[0];
+  const stageTasks = tasks.filter((t: any) => {
+    const sId = t.stageId?._id ? String(t.stageId._id) : String(t.stageId);
+    return sId === String(currentSelectedStage?._id);
+  });
 
   // Check if previous stage was approved
   const currentStageOrder = currentSelectedStage?.order || 1;
@@ -596,7 +596,7 @@ export default function ProjectDetailPage({
         {/* Stepper Cards Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           {stages.map((stage: any) => {
-            const isSelected = stage._id === selectedStageId;
+            const isSelected = String(stage._id) === String(selectedStageId);
             const isApproved = stage.status === "Approved";
             const isCompleted = stage.status === "Completed";
             const isInProgress = stage.status === "In Progress";
@@ -604,9 +604,9 @@ export default function ProjectDetailPage({
 
             return (
               <button
-                key={stage._id}
-                onClick={() => setSelectedStageId(stage._id)}
-                className={`p-2 rounded-xl text-left transition-all relative border flex flex-col justify-between h-20 ${
+                key={String(stage._id)}
+                onClick={() => setSelectedStageId(String(stage._id))}
+                className={`p-2.5 rounded-xl text-left transition-all relative border flex flex-col justify-between h-22 cursor-pointer ${
                   isSelected
                     ? "border-[#00b0ef] bg-[#e0f6fd]/40 dark:bg-[#0f2e42]/50 shadow-xs ring-1 ring-[#00b0ef]"
                     : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300"

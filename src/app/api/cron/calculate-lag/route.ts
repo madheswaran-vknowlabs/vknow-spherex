@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const settings = await Setting.findOne().lean();
-    const warningDays = settings?.lagThresholds?.warningDays || 2;
-    const criticalDays = settings?.lagThresholds?.criticalDays || 5;
+    const warningDays = (settings as any)?.lagWarningThresholdDays || (settings as any)?.lagThresholds?.warningDays || 2;
+    const criticalDays = (settings as any)?.lagCriticalThresholdDays || (settings as any)?.lagThresholds?.criticalDays || 5;
 
     const today = startOfDay(new Date());
 

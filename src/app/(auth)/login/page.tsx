@@ -122,38 +122,40 @@ export default function LoginPage() {
 
       {/* Right Column: Sign In Form (Fit in viewport) */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 xl:p-12 overflow-y-auto">
-        <div className="w-full max-w-sm space-y-5 my-auto">
+        <div className="w-full max-w-md space-y-6 my-auto">
           <div className="text-center lg:text-left">
             <div className="lg:hidden flex justify-center mb-4">
-              <VKnowLogo size="md" />
+              <VKnowLogo size="lg" />
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
               Welcome Back
             </h2>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Sign in to manage projects, log progress, or review sign-offs
+            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+              Sign in to manage projects, update deliverables, or review stage sign-offs
             </p>
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm font-medium flex items-start gap-2.5">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs">Email Address</Label>
+              <Label htmlFor="email" className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                Email Address
+              </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="name@vknowlabs.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-9 h-9 text-sm"
+                  className="pl-10 h-11 text-sm sm:text-base rounded-xl"
                   required
                 />
               </div>
@@ -161,20 +163,22 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs">Password</Label>
-                <span className="text-[11px] text-[#00b0ef]">
+                <Label htmlFor="password" className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                  Password
+                </Label>
+                <span className="text-xs font-semibold text-[#00b0ef]">
                   Default: password123
                 </span>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 h-9 text-sm"
+                  className="pl-10 h-11 text-sm sm:text-base rounded-xl"
                   required
                 />
               </div>
@@ -183,7 +187,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-10 text-sm font-semibold bg-[#00b0ef] hover:bg-[#009ad4] text-white shadow hover:shadow-md transition-all"
+              className="w-full h-11 text-base font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white rounded-xl shadow hover:shadow-md transition-all cursor-pointer"
             >
               {loading ? (
                 <>
@@ -200,74 +204,74 @@ export default function LoginPage() {
           </form>
 
           {/* Demo User Quick Fill Chips */}
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
-              <Sparkles className="w-3 h-3 text-[#00b0ef]" />
-              <span>1-Click Test Demo Accounts (Seeded)</span>
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5">
+              <Sparkles className="w-3.5 h-3.5 text-[#00b0ef]" />
+              <span>1-Click Test Accounts</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => quickFill("admin@vknowlabs.com")}
-                className="text-left p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors"
+                className="text-left p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Madheswaran
                   </span>
-                  <Badge variant="cyan" className="text-[9px] px-1.5 py-0">
+                  <Badge variant="cyan" className="text-[10px] px-1.5 py-0">
                     Admin
                   </Badge>
                 </div>
-                <div className="text-[10px] text-slate-500 truncate">admin@vknowlabs.com</div>
+                <div className="text-xs text-slate-500 truncate">admin@vknowlabs.com</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => quickFill("sarah.lead@vknowlabs.com")}
-                className="text-left p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors"
+                className="text-left p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Sarah Jenkins
                   </span>
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                     Lead
                   </Badge>
                 </div>
-                <div className="text-[10px] text-slate-500 truncate">sarah.lead@vknowlabs.com</div>
+                <div className="text-xs text-slate-500 truncate">sarah.lead@vknowlabs.com</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => quickFill("alex.dev@vknowlabs.com")}
-                className="text-left p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors"
+                className="text-left p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Alex Rivera
                   </span>
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                     PWA Dev
                   </Badge>
                 </div>
-                <div className="text-[10px] text-slate-500 truncate">alex.dev@vknowlabs.com</div>
+                <div className="text-xs text-slate-500 truncate">alex.dev@vknowlabs.com</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => quickFill("rohit.qa@vknowlabs.com")}
-                className="text-left p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors"
+                className="text-left p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Rohit Verma
                   </span>
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                     QA
                   </Badge>
                 </div>
-                <div className="text-[10px] text-slate-500 truncate">rohit.qa@vknowlabs.com</div>
+                <div className="text-xs text-slate-500 truncate">rohit.qa@vknowlabs.com</div>
               </button>
             </div>
           </div>

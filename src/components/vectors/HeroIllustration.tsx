@@ -1,132 +1,232 @@
 import React from "react";
 
-export function HeroIllustration({ className = "w-full h-auto max-w-md" }: { className?: string }) {
+export function HeroIllustration({ className = "w-full h-auto max-w-lg" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 600 480"
+      viewBox="0 0 640 480"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
       <defs>
-        <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        {/* Gradients */}
+        <linearGradient id="brandCyan" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#00b0ef" />
           <stop offset="100%" stopColor="#007ea8" />
         </linearGradient>
-        <linearGradient id="cyanSoft" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e0f6fd" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#bae6fd" stopOpacity="0.3" />
+
+        <linearGradient id="brandGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#00b0ef" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#00b0ef" stopOpacity="0" />
         </linearGradient>
-        <linearGradient id="cardBg" x1="0%" y1="0%" x2="0%" y2="100%">
+
+        <linearGradient id="cardGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#1e293b" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#0f172a" stopOpacity="0.98" />
+        </linearGradient>
+
+        <linearGradient id="cardGradLight" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" />
           <stop offset="100%" stopColor="#f8fafc" />
         </linearGradient>
-        <filter id="shadowGlow" x="-10%" y="-10%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="12" stdDeviation="16" floodColor="#00b0ef" floodOpacity="0.22" />
+
+        <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#10b981" />
+          <stop offset="100%" stopColor="#059669" />
+        </linearGradient>
+
+        <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f59e0b" />
+          <stop offset="100%" stopColor="#d97706" />
+        </linearGradient>
+
+        {/* Filters */}
+        <filter id="softShadow" x="-15%" y="-15%" width="130%" height="130%">
+          <feDropShadow dx="0" dy="16" stdDeviation="20" floodColor="#00b0ef" floodOpacity="0.25" />
         </filter>
-        <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#0f172a" floodOpacity="0.08" />
+        <filter id="darkCardShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="12" stdDeviation="16" floodColor="#000000" floodOpacity="0.45" />
         </filter>
       </defs>
 
-      {/* Background ambient orbs */}
-      <circle cx="480" cy="120" r="90" fill="#00b0ef" fillOpacity="0.12" />
-      <circle cx="120" cy="380" r="110" fill="#00b0ef" fillOpacity="0.08" />
-      <path d="M50 240 Q 200 120 400 200 T 550 180" stroke="#00b0ef" strokeWidth="2" strokeDasharray="6 6" strokeOpacity="0.4" />
+      {/* Background Ambient Glows & Perspective Grid */}
+      <circle cx="320" cy="240" r="180" fill="url(#brandGlow)" />
+      <circle cx="520" cy="100" r="80" fill="#00b0ef" fillOpacity="0.1" />
+      <circle cx="100" cy="380" r="100" fill="#00b0ef" fillOpacity="0.08" />
 
-      {/* Main Dashboard Card */}
-      <g filter="url(#cardShadow)">
-        <rect x="70" y="60" width="460" height="340" rx="20" fill="url(#cardBg)" stroke="#e2e8f0" strokeWidth="1.5" />
-        {/* Window controls */}
-        <circle cx="102" cy="88" r="5" fill="#ef4444" />
-        <circle cx="118" cy="88" r="5" fill="#f59e0b" />
-        <circle cx="134" cy="88" r="5" fill="#10b981" />
-        {/* Header bar */}
-        <rect x="160" y="82" width="140" height="12" rx="6" fill="#e2e8f0" />
-        <rect x="420" y="80" width="80" height="16" rx="8" fill="url(#cyanSoft)" />
-        <circle cx="430" cy="88" r="3" fill="#00b0ef" />
-        <rect x="440" y="85" width="50" height="6" rx="3" fill="#00b0ef" />
+      {/* Perspective Geometric Grid Lines */}
+      <g stroke="#334155" strokeWidth="1" strokeOpacity="0.3">
+        <line x1="80" y1="420" x2="560" y2="420" />
+        <line x1="120" y1="360" x2="520" y2="360" />
+        <line x1="160" y1="300" x2="480" y2="300" />
+        <line x1="320" y1="200" x2="80" y2="420" strokeDasharray="4 4" />
+        <line x1="320" y1="200" x2="200" y2="420" strokeDasharray="4 4" />
+        <line x1="320" y1="200" x2="440" y2="420" strokeDasharray="4 4" />
+        <line x1="320" y1="200" x2="560" y2="420" strokeDasharray="4 4" />
       </g>
 
-      {/* Stage Flow Nodes */}
-      <g transform="translate(100, 125)">
-        {/* Stage 1 */}
-        <rect x="0" y="0" width="90" height="42" rx="10" fill="#ffffff" stroke="#10b981" strokeWidth="1.5" />
-        <circle cx="16" cy="21" r="7" fill="#10b981" />
-        <path d="M13 21 L15 23 L19 19" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="30" y="14" width="46" height="6" rx="3" fill="#334155" />
-        <rect x="30" y="24" width="30" height="4" rx="2" fill="#94a3b8" />
+      {/* Main High-Tech Dashboard Board */}
+      <g filter="url(#darkCardShadow)">
+        <rect
+          x="70"
+          y="50"
+          width="500"
+          height="320"
+          rx="24"
+          fill="url(#cardGradDark)"
+          stroke="#334155"
+          strokeWidth="1.5"
+        />
 
-        {/* Connector 1 */}
-        <line x1="90" y1="21" x2="115" y2="21" stroke="#10b981" strokeWidth="2" />
+        {/* Dashboard Top Header Bar */}
+        <rect x="70" y="50" width="500" height="44" rx="24" fill="#0f172a" />
+        <line x1="70" y1="94" x2="570" y2="94" stroke="#1e293b" strokeWidth="1.5" />
 
-        {/* Stage 2 */}
-        <rect x="115" y="0" width="90" height="42" rx="10" fill="#ffffff" stroke="#10b981" strokeWidth="1.5" />
-        <circle cx="131" cy="21" r="7" fill="#10b981" />
-        <path d="M128 21 L130 23 L134 19" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="145" y="14" width="46" height="6" rx="3" fill="#334155" />
-        <rect x="145" y="24" width="30" height="4" rx="2" fill="#94a3b8" />
+        {/* Window Dots */}
+        <circle cx="102" cy="72" r="5" fill="#ef4444" />
+        <circle cx="118" cy="72" r="5" fill="#f59e0b" />
+        <circle cx="134" cy="72" r="5" fill="#10b981" />
 
-        {/* Connector 2 */}
-        <line x1="205" y1="21" x2="230" y2="21" stroke="#00b0ef" strokeWidth="2" strokeDasharray="3 3" />
+        {/* App Title Pill */}
+        <rect x="160" y="62" width="160" height="20" rx="10" fill="#1e293b" />
+        <circle cx="172" cy="72" r="3.5" fill="#00b0ef" />
+        <rect x="184" y="69" width="70" height="6" rx="3" fill="#cbd5e1" />
 
-        {/* Stage 3 (Active) */}
-        <rect x="230" y="-4" width="105" height="50" rx="12" fill="url(#cyanSoft)" stroke="#00b0ef" strokeWidth="2" filter="url(#shadowGlow)" />
-        <circle cx="248" cy="21" r="8" fill="#00b0ef" />
-        <circle cx="248" cy="21" r="4" fill="#ffffff" />
-        <rect x="264" y="14" width="55" height="7" rx="3.5" fill="#007ea8" />
-        <rect x="264" y="25" width="38" height="5" rx="2.5" fill="#00b0ef" />
-
-        {/* Connector 3 */}
-        <line x1="335" y1="21" x2="355" y2="21" stroke="#cbd5e1" strokeWidth="2" />
-
-        {/* Stage 4 (Upcoming) */}
-        <rect x="355" y="0" width="50" height="42" rx="10" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5" />
-        <circle cx="370" cy="21" r="6" fill="#cbd5e1" />
-        <rect x="382" y="18" width="16" height="6" rx="3" fill="#cbd5e1" />
+        {/* Live Status Pill */}
+        <rect x="450" y="62" width="100" height="20" rx="10" fill="#00b0ef" fillOpacity="0.15" />
+        <circle cx="462" cy="72" r="3" fill="#00b0ef" />
+        <rect x="472" y="69" width="65" height="6" rx="3" fill="#00b0ef" />
       </g>
 
-      {/* Metrics Row */}
-      <g transform="translate(100, 195)">
-        {/* Metric 1: Health On Track */}
-        <rect x="0" y="0" width="115" height="65" rx="12" fill="#f0fdf4" stroke="#bbf7d0" strokeWidth="1" />
-        <rect x="14" y="14" width="40" height="6" rx="3" fill="#15803d" />
-        <text x="14" y="44" fontFamily="sans-serif" fontSize="18" fontWeight="bold" fill="#166534">94.2%</text>
-        <circle cx="95" cy="22" r="10" fill="#dcfce7" />
-        <path d="M92 22 L94 24 L98 20" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" />
+      {/* 8-Stage Interactive Lifecycle Visual Pipeline */}
+      <g transform="translate(100, 115)">
+        {/* Pipeline Track */}
+        <rect x="10" y="24" width="420" height="4" rx="2" fill="#1e293b" />
+        <rect x="10" y="24" width="260" height="4" rx="2" fill="url(#brandCyan)" />
 
-        {/* Metric 2: Work Lag Engine */}
-        <rect x="125" y="0" width="125" height="65" rx="12" fill="url(#cyanSoft)" stroke="#00b0ef" strokeWidth="1.5" />
-        <rect x="139" y="14" width="45" height="6" rx="3" fill="#007ea8" />
-        <text x="139" y="44" fontFamily="sans-serif" fontSize="18" fontWeight="bold" fill="#007ea8">0.4d Lag</text>
-        <circle cx="230" cy="22" r="10" fill="#bae6fd" />
-        <path d="M230 17 L230 22 L234 24" stroke="#007ea8" strokeWidth="1.5" strokeLinecap="round" />
+        {/* Node 1: Requirements (Completed) */}
+        <circle cx="20" cy="26" r="14" fill="#10b981" />
+        <path d="M16 26 L19 29 L25 23" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="4" y="46" width="32" height="5" rx="2.5" fill="#94a3b8" />
 
-        {/* Metric 3: Weekly Compliance */}
-        <rect x="260" y="0" width="140" height="65" rx="12" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
-        <rect x="274" y="14" width="55" height="6" rx="3" fill="#475569" />
-        <text x="274" y="44" fontFamily="sans-serif" fontSize="18" fontWeight="bold" fill="#0f172a">100%</text>
-        <text x="325" y="44" fontFamily="sans-serif" fontSize="11" fill="#64748b">Filed</text>
+        {/* Node 2: Documentation (Completed) */}
+        <circle cx="100" cy="26" r="14" fill="#10b981" />
+        <path d="M96 26 L99 29 L105 23" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="84" y="46" width="32" height="5" rx="2.5" fill="#94a3b8" />
+
+        {/* Node 3: Design (Completed) */}
+        <circle cx="180" cy="26" r="14" fill="#10b981" />
+        <path d="M176 26 L179 29 L185 23" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="164" y="46" width="32" height="5" rx="2.5" fill="#94a3b8" />
+
+        {/* Node 4: Development (Active Pulsing Sphere) */}
+        <circle cx="260" cy="26" r="20" fill="url(#brandCyan)" filter="url(#softShadow)" />
+        <circle cx="260" cy="26" r="8" fill="#ffffff" />
+        <circle cx="260" cy="26" r="4" fill="#007ea8" />
+        <rect x="238" y="52" width="44" height="6" rx="3" fill="#00b0ef" />
+
+        {/* Node 5: Testing (Upcoming) */}
+        <circle cx="340" cy="26" r="12" fill="#1e293b" stroke="#475569" strokeWidth="2" />
+        <rect x="326" y="46" width="28" height="5" rx="2.5" fill="#475569" />
+
+        {/* Node 6: Production Deployment */}
+        <circle cx="410" cy="26" r="12" fill="#1e293b" stroke="#334155" strokeWidth="2" />
+        <rect x="396" y="46" width="28" height="5" rx="2.5" fill="#334155" />
       </g>
 
-      {/* Floating Team & Task Card */}
-      <g filter="url(#shadowGlow)" transform="translate(180, 280)">
-        <rect x="0" y="0" width="310" height="100" rx="16" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.5" />
-        <rect x="20" y="18" width="160" height="8" rx="4" fill="#0f172a" />
-        <rect x="20" y="32" width="110" height="6" rx="3" fill="#94a3b8" />
+      {/* Analytics Wave & Gantt Mini Chart inside Dashboard */}
+      <g transform="translate(100, 205)">
+        {/* Mini Chart Background Container */}
+        <rect x="0" y="0" width="250" height="135" rx="16" fill="#0f172a" stroke="#1e293b" strokeWidth="1" />
+        <text x="16" y="24" fontFamily="sans-serif" fontSize="11" fontWeight="bold" fill="#f8fafc">
+          Delivery Velocity &amp; Lag Trend
+        </text>
+
+        {/* Grid lines */}
+        <line x1="16" y1="50" x2="234" y2="50" stroke="#1e293b" />
+        <line x1="16" y1="80" x2="234" y2="80" stroke="#1e293b" />
+        <line x1="16" y1="110" x2="234" y2="110" stroke="#1e293b" />
+
+        {/* Smooth Area Wave Curve */}
+        <path
+          d="M16 110 Q 50 85 90 95 T 160 55 T 234 40 L 234 125 L 16 125 Z"
+          fill="url(#brandGlow)"
+        />
+        <path
+          d="M16 110 Q 50 85 90 95 T 160 55 T 234 40"
+          stroke="url(#brandCyan)"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+
+        {/* Pulse point at crest */}
+        <circle cx="234" cy="40" r="5" fill="#00b0ef" />
+        <circle cx="234" cy="40" r="2.5" fill="#ffffff" />
+      </g>
+
+      {/* Floating 3D KPI Badge 1: Health On Time */}
+      <g filter="url(#darkCardShadow)" transform="translate(370, 205)">
+        <rect x="0" y="0" width="180" height="62" rx="16" fill="#1e293b" stroke="#334155" strokeWidth="1.2" />
+        <circle cx="26" cy="31" r="14" fill="#10b981" fillOpacity="0.2" />
+        <path d="M21 31 L24 34 L31 27" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="50" y="26" fontFamily="sans-serif" fontSize="10" fontWeight="bold" fill="#94a3b8" style={{ textTransform: "uppercase" }}>
+          Project Health
+        </text>
+        <text x="50" y="47" fontFamily="sans-serif" fontSize="16" fontWeight="900" fill="#10b981">
+          100% On Time
+        </text>
+      </g>
+
+      {/* Floating 3D KPI Badge 2: Work Lag Zero */}
+      <g filter="url(#darkCardShadow)" transform="translate(370, 280)">
+        <rect x="0" y="0" width="180" height="60" rx="16" fill="#1e293b" stroke="#334155" strokeWidth="1.2" />
+        <circle cx="26" cy="30" r="14" fill="#00b0ef" fillOpacity="0.2" />
+        <path d="M26 23 L26 30 L31 33" stroke="#00b0ef" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="50" y="25" fontFamily="sans-serif" fontSize="10" fontWeight="bold" fill="#94a3b8" style={{ textTransform: "uppercase" }}>
+          Schedule Lag
+        </text>
+        <text x="50" y="46" fontFamily="sans-serif" fontSize="16" fontWeight="900" fill="#00b0ef">
+          0.0 Days Lag
+        </text>
+      </g>
+
+      {/* Floating Foreground Card: Active Deliverable & Team Members */}
+      <g filter="url(#softShadow)" transform="translate(180, 360)">
+        <rect
+          x="0"
+          y="0"
+          width="320"
+          height="88"
+          rx="18"
+          fill="#ffffff"
+          stroke="#e2e8f0"
+          strokeWidth="1.5"
+        />
+
+        {/* Task Title & Status Pill */}
+        <circle cx="26" cy="28" r="8" fill="#10b981" />
+        <path d="M23 28 L25 30 L29 26" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         
-        {/* Progress Bar with #00B0EF */}
-        <rect x="20" y="52" width="270" height="8" rx="4" fill="#e2e8f0" />
-        <rect x="20" y="52" width="200" height="8" rx="4" fill="url(#cyanGrad)" />
-        
-        {/* Avatars */}
-        <circle cx="32" cy="78" r="10" fill="#00b0ef" />
-        <circle cx="48" cy="78" r="10" fill="#585858" />
-        <circle cx="64" cy="78" r="10" fill="#10b981" />
-        <text x="82" y="82" fontFamily="sans-serif" fontSize="11" fontWeight="600" fill="#64748b">+4 members</text>
+        <text x="42" y="28" fontFamily="sans-serif" fontSize="12" fontWeight="bold" fill="#0f172a">
+          Production Ready Sign-Off
+        </text>
 
-        <rect x="215" y="68" width="75" height="20" rx="10" fill="#10b981" fillOpacity="0.15" />
-        <text x="232" y="82" fontFamily="sans-serif" fontSize="11" fontWeight="bold" fill="#166534">On Track</text>
+        <rect x="226" y="16" width="76" height="20" rx="10" fill="#e0f6fd" />
+        <text x="240" y="30" fontFamily="sans-serif" fontSize="10" fontWeight="bold" fill="#007ea8">
+          Stage Gate 6
+        </text>
+
+        {/* Horizontal Progress Bar */}
+        <rect x="20" y="44" width="280" height="6" rx="3" fill="#f1f5f9" />
+        <rect x="20" y="44" width="220" height="6" rx="3" fill="url(#brandCyan)" />
+
+        {/* Team Avatar Stack */}
+        <circle cx="32" cy="68" r="9" fill="#00b0ef" />
+        <circle cx="46" cy="68" r="9" fill="#1e293b" />
+        <circle cx="60" cy="68" r="9" fill="#10b981" />
+        <text x="76" y="72" fontFamily="sans-serif" fontSize="10" fontWeight="600" fill="#64748b">
+          8 Active Engineers Assigned
+        </text>
       </g>
     </svg>
   );

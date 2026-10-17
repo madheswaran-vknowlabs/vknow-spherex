@@ -346,7 +346,7 @@ export default function MyReportsPage() {
                                 task.priority === "Urgent"
                                   ? "destructive"
                                   : task.priority === "High"
-                                  ? "warning"
+                                  ? "amber"
                                   : "secondary"
                               }
                               className="text-[11px] px-2 py-0.5"
@@ -358,7 +358,7 @@ export default function MyReportsPage() {
                             <Badge
                               variant={
                                 task.status === "Completed"
-                                  ? "emerald"
+                                  ? "green"
                                   : task.status === "In Progress"
                                   ? "cyan"
                                   : task.status === "Blocked"

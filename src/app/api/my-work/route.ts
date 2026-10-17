@@ -15,16 +15,34 @@ export async function GET(req: NextRequest) {
     const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
     const currentWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    // Fetch all active tasks assigned to the current user
-    const userTasks = await Task.find({
-      assigneeId: user.id,
-      isArchived: false,
-    })
-      .populate("projectId", "name code health")
-      .populate("stageId", "name order status")
-      .populate("blockedBy", "title status priority")
-      .sort({ plannedEndDate: 1 })
-      .lean();
+    // Fetch all active projects assigned to this user (or all active projects if admin)
+    const projectQuery: any = { isArchived: false };
+    if (user.role !== "admin") {
+      projectQuery.members = user.id;
+    }
+
+    const [userTasks, assignedProjects, weeklyUpdatesThisWeek] = await Promise.all([
+      Task.find({
+        assigneeId: user.id,
+        isArchived: false,
+      })
+        .populate("projectId", "name code health")
+        .populate("stageId", "name order status")
+        .populate("blockedBy", "title status priority")
+        .sort({ plannedEndDate: 1 })
+        .lean(),
+
+      Project.find(projectQuery)
+        .populate("currentStageId", "name order status percentComplete")
+        .populate("members", "name email department role avatar")
+        .sort({ updatedAt: -1 })
+        .lean(),
+
+      WeeklyUpdate.find({
+        userId: user.id,
+        weekStartDate: { $gte: currentWeekStart, $lte: currentWeekEnd },
+      }).lean(),
+    ]);
 
     // Categorize tasks
     const overdueTasks = userTasks.filter(
@@ -47,12 +65,7 @@ export async function GET(req: NextRequest) {
     );
     const currentYear = currentWeekStart.getFullYear();
 
-    const weeklyUpdatesThisWeek = await WeeklyUpdate.find({
-      userId: user.id,
-      weekStartDate: { $gte: currentWeekStart, $lte: currentWeekEnd },
-    }).lean();
-
-    // Calculate total hours logged this week from task logged hours or weekly updates
+    // Calculate total hours logged this week from weekly updates
     const hoursLoggedThisWeek = weeklyUpdatesThisWeek.reduce(
       (acc, u) => acc + (u.hoursSpent || 0),
       0
@@ -71,11 +84,13 @@ export async function GET(req: NextRequest) {
           hasSubmittedWeeklyUpdate: weeklyUpdatesThisWeek.length > 0,
           currentWeekNumber,
           currentYear,
+          assignedProjectsCount: assignedProjects.length,
         },
         overdueTasks,
         dueThisWeekTasks,
         inProgressTasks,
         allTasks: userTasks,
+        assignedProjects,
       },
     });
   } catch (error: any) {
