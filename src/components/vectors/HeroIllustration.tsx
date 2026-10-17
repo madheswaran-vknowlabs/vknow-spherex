@@ -1,9 +1,9 @@
 import React from "react";
 
-export function HeroIllustration({ className = "w-full h-auto max-w-lg" }: { className?: string }) {
+export function HeroIllustration({ className = "w-full h-auto" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 640 480"
+      viewBox="50 30 540 430"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}

@@ -73,43 +73,43 @@ export default function LoginPage() {
           </Badge>
         </div>
 
-        <div className="relative z-10 my-auto py-3 max-w-lg">
+        <div className="relative z-10 my-auto py-2 w-full max-w-xl xl:max-w-2xl mx-auto">
           <div className="mb-4">
-            <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight">
+            <h1 className="text-2xl sm:text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight">
               Lifecycle Intelligence from <br />
               <span className="text-[#00b0ef]">Requirement to Release.</span>
             </h1>
-            <p className="mt-2 text-slate-300 text-sm leading-relaxed">
+            <p className="mt-1.5 text-slate-300 text-xs sm:text-sm leading-relaxed">
               Real-time work lag calculation, automated weekly rollups, immutable audit trails,
               and executive reporting for engineering teams.
             </p>
           </div>
 
-          <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-4 border border-slate-800 shadow-xl max-w-md mx-auto">
-            <HeroIllustration className="w-full h-auto max-h-[220px]" />
+          <div className="bg-slate-900/70 backdrop-blur-md rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-2xl w-full mx-auto">
+            <HeroIllustration className="w-full h-auto max-h-[380px] xl:max-h-[420px]" />
           </div>
 
           <div className="grid grid-cols-3 gap-3 mt-4">
-            <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-800/80">
+            <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-800/80">
               <div className="flex items-center gap-1.5 text-[#00b0ef] mb-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-bold uppercase tracking-wider">8 Stages</span>
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">8 Stages</span>
               </div>
-              <p className="text-[11px] text-slate-300">Formal sign-offs</p>
+              <p className="text-xs text-slate-300">Formal sign-offs</p>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-800/80">
+            <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-800/80">
               <div className="flex items-center gap-1.5 text-amber-400 mb-0.5">
-                <Clock className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-bold uppercase tracking-wider">&lt; 2 Mins</span>
+                <Clock className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">&lt; 2 Mins</span>
               </div>
-              <p className="text-[11px] text-slate-300">Fast updates</p>
+              <p className="text-xs text-slate-300">Fast updates</p>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-800/80">
+            <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-800/80">
               <div className="flex items-center gap-1.5 text-emerald-400 mb-0.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-bold uppercase tracking-wider">Audit Log</span>
+                <ShieldCheck className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Audit Log</span>
               </div>
-              <p className="text-[11px] text-slate-300">Immutable diffs</p>
+              <p className="text-xs text-slate-300">Immutable diffs</p>
             </div>
           </div>
         </div>
