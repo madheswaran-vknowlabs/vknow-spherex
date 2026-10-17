@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CoolDropdown } from "@/components/ui/cool-select";
 import { FrappeGantt, GanttItem } from "@/components/timeline/FrappeGantt";
 import {
   ResponsiveContainer,
@@ -158,40 +159,40 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Global Controls & Filters */}
+        {/* Global Controls & Filters (Cool Dropdowns) */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Project Selector */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Project:</span>
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden cursor-pointer"
-            >
-              <option value="ALL">All Projects ({projectsList.length})</option>
-              {projectsList.map((p: any) => (
-                <option key={p._id} value={p._id}>
-                  [{p.code}] {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CoolDropdown
+            label="Project"
+            icon={FolderKanban}
+            value={selectedProjectId}
+            onChange={setSelectedProjectId}
+            minWidth="min-w-[280px]"
+            options={[
+              { value: "ALL", label: `All Projects (${projectsList.length})`, sublabel: "Portfolio Overview" },
+              ...projectsList.map((p: any) => ({
+                value: p._id,
+                label: p.name,
+                sublabel: `Code: [${p.code}] • Client: ${p.client || "Internal"}`,
+                badge: p.health,
+              })),
+            ]}
+          />
 
           {/* Health Filter */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Health:</span>
-            <select
-              value={healthFilter}
-              onChange={(e) => setHealthFilter(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden cursor-pointer"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="Green">Green (On Time)</option>
-              <option value="Amber">Amber (At Risk)</option>
-              <option value="Red">Red (Critical)</option>
-            </select>
-          </div>
+          <CoolDropdown
+            label="Health"
+            icon={Filter}
+            value={healthFilter}
+            onChange={setHealthFilter}
+            minWidth="min-w-[190px]"
+            options={[
+              { value: "ALL", label: "All Health Statuses", sublabel: "Show all projects" },
+              { value: "Green", label: "Green (On Time)", sublabel: "Zero delivery lag", badge: "Green" },
+              { value: "Amber", label: "Amber (At Risk)", sublabel: "Moderate schedule lag", badge: "Amber" },
+              { value: "Red", label: "Red (Critical)", sublabel: "Exceeds critical threshold", badge: "Red" },
+            ]}
+          />
 
           <Button
             variant="outline"
@@ -671,7 +672,14 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <FrappeGantt
             items={portfolioGanttItems}
-            title="Portfolio Gantt Timeline — Projects Overview"
+            title={
+              selectedProjectId !== "ALL"
+                ? `[${projectsList.find((p: any) => p._id === selectedProjectId)?.code || "PROJECT"}] ${
+                    projectsList.find((p: any) => p._id === selectedProjectId)?.name || "Project"
+                  } — Gantt Timeline`
+                : "Portfolio Gantt Timeline — Projects Overview"
+            }
+            projectId={selectedProjectId !== "ALL" ? selectedProjectId : undefined}
             defaultViewMode="Week"
           />
         </div>

@@ -6,7 +6,7 @@ import "@/styles/frappe-gantt.css";
 import { format, parseISO, isValid, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, ZoomIn, Layers, Clock, AlertCircle } from "lucide-react";
+import { Calendar, ZoomIn, Layers, Clock, AlertCircle, FileSpreadsheet, FileText, Download } from "lucide-react";
 
 export interface GanttItem {
   id: string;
@@ -25,6 +25,7 @@ export interface GanttItem {
 interface FrappeGanttProps {
   items: GanttItem[];
   title?: string;
+  projectId?: string;
   onItemClick?: (item: GanttItem) => void;
   className?: string;
   defaultViewMode?: "Day" | "Week" | "Month";
@@ -33,6 +34,7 @@ interface FrappeGanttProps {
 export function FrappeGantt({
   items,
   title,
+  projectId,
   onItemClick,
   className = "",
   defaultViewMode = "Week",
@@ -204,38 +206,65 @@ export function FrappeGantt({
           </div>
         </div>
 
-        {/* View Mode Controls */}
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          <button
-            onClick={() => changeViewMode("Day")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === "Day"
-                ? "bg-white dark:bg-slate-900 text-[#00b0ef] shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            Day View
-          </button>
-          <button
-            onClick={() => changeViewMode("Week")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === "Week"
-                ? "bg-white dark:bg-slate-900 text-[#00b0ef] shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            Week View
-          </button>
-          <button
-            onClick={() => changeViewMode("Month")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === "Month"
-                ? "bg-white dark:bg-slate-900 text-[#00b0ef] shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            Month View
-          </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Download Timeline Buttons */}
+          {projectId && (
+            <div className="flex items-center gap-2">
+              <a
+                href={`/api/projects/${projectId}/gantt/export?format=excel`}
+                download
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors"
+                title="Download Gantt Timeline Schedule as Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Download Excel</span>
+              </a>
+
+              <a
+                href={`/api/projects/${projectId}/gantt/export?format=pdf`}
+                download
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00b0ef] hover:bg-[#009ad4] text-white font-bold text-xs shadow-xs transition-colors"
+                title="Download Gantt Timeline Schedule as PDF"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Download PDF</span>
+              </a>
+            </div>
+          )}
+
+          {/* View Mode Controls */}
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => changeViewMode("Day")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "Day"
+                  ? "bg-white dark:bg-slate-900 text-[#00b0ef] shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Day View
+            </button>
+            <button
+              onClick={() => changeViewMode("Week")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "Week"
+                  ? "bg-white dark:bg-slate-900 text-[#00b0ef] shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Week View
+            </button>
+            <button
+              onClick={() => changeViewMode("Month")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "Month"
+                  ? "bg-white dark:bg-slate-900 text-[#00b0ef] shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Month View
+            </button>
+          </div>
         </div>
       </div>
 

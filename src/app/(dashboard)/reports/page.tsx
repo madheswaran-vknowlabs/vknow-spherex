@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CoolDropdown, CoolDropdownOption } from "@/components/ui/cool-select";
 import { format } from "date-fns";
 
 export default function AdminReportsPage() {
@@ -193,60 +194,57 @@ export default function AdminReportsPage() {
         </div>
       </div>
 
-      {/* Filter Toolbar (Simple, Clear Dropdowns) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      {/* Filter Toolbar (Cool, Modern Dropdowns) */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Period Quick Select */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Period:</span>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as any)}
-              className="bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden cursor-pointer"
-            >
-              <option value="all">All Time</option>
-              <option value="weekly">Past 7 Days (Weekly)</option>
-              <option value="monthly">Past 30 Days (Monthly)</option>
-              <option value="yearly">Past 365 Days (Yearly)</option>
-            </select>
-          </div>
+          {/* Period Dropdown */}
+          <CoolDropdown
+            label="Period"
+            icon={Calendar}
+            value={period}
+            onChange={(val) => setPeriod(val as any)}
+            options={[
+              { value: "all", label: "All Time", sublabel: "Historical aggregation" },
+              { value: "weekly", label: "Past 7 Days", sublabel: "Weekly sprint view" },
+              { value: "monthly", label: "Past 30 Days", sublabel: "Monthly cycle view" },
+              { value: "yearly", label: "Past 365 Days", sublabel: "Yearly executive view" },
+            ]}
+          />
 
-          {/* Project Filter */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-            <FolderKanban className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Project:</span>
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden cursor-pointer"
-            >
-              <option value="ALL">All Projects ({projects.length})</option>
-              {projects.map((p: any) => (
-                <option key={p._id} value={p._id}>
-                  [{p.code}] {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Project Dropdown */}
+          <CoolDropdown
+            label="Project"
+            icon={FolderKanban}
+            value={selectedProjectId}
+            onChange={setSelectedProjectId}
+            minWidth="min-w-[280px]"
+            options={[
+              { value: "ALL", label: `All Projects (${projects.length})`, sublabel: "Full enterprise portfolio" },
+              ...projects.map((p: any) => ({
+                value: p._id,
+                label: p.name,
+                sublabel: `Code: [${p.code}] • Client: ${p.client || "Internal"}`,
+                badge: p.health,
+              })),
+            ]}
+          />
 
-          {/* Team Member Filter */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
-            <Users className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Member:</span>
-            <select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden cursor-pointer"
-            >
-              <option value="ALL">All Team Members ({users.length})</option>
-              {users.map((u: any) => (
-                <option key={u._id} value={u._id}>
-                  {u.name} ({u.department || "Engineering"})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Team Member Dropdown */}
+          <CoolDropdown
+            label="Member"
+            icon={Users}
+            value={selectedUserId}
+            onChange={setSelectedUserId}
+            minWidth="min-w-[260px]"
+            options={[
+              { value: "ALL", label: `All Team Members (${users.length})`, sublabel: "Consolidated team capacity" },
+              ...users.map((u: any) => ({
+                value: u._id,
+                label: u.name,
+                sublabel: `${u.department || "Engineering"} • ${u.role}`,
+              })),
+            ]}
+          />
         </div>
 
         <Button

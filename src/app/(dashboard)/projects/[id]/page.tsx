@@ -576,6 +576,7 @@ export default function ProjectDetailPage({
         <FrappeGantt
           items={projectGanttItems}
           title={`[${project.code}] ${project.name} — Gantt Timeline`}
+          projectId={project._id}
           defaultViewMode="Week"
         />
       ) : (

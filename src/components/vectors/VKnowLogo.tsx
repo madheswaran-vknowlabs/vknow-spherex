@@ -48,8 +48,8 @@ export function VKnowLogo({
           <span className={`font-black tracking-tight ${dimensions.text} ${titleColor} flex items-center gap-1.5`}>
             VKnow <span className="text-[#00b0ef]">SphereX</span>
           </span>
-          <span className={`font-semibold tracking-wider uppercase ${subtitleColor} ${dimensions.sub} mt-0.5`}>
-            Lifecycle Tracker
+          <span className={`font-bold tracking-widest uppercase ${subtitleColor} ${dimensions.sub} mt-0.5`}>
+            TRACKER
           </span>
         </div>
       )}

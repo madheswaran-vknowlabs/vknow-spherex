@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VKnow SphereX | Project Lifecycle Tracker",
+  title: "VKnow SphereX | TRACKER",
   description:
     "Enterprise project lifecycle tracker with work lag calculations, weekly rollups, and audit trails.",
   icons: {

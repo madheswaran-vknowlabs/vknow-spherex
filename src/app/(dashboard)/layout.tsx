@@ -6,6 +6,7 @@ import Link from "next/link";
 import { VKnowLogo } from "@/components/vectors/VKnowLogo";
 import { Badge } from "@/components/ui/badge";
 import { SignOutButton } from "@/components/common/SignOutButton";
+import { NotificationBell } from "@/components/common/NotificationBell";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -89,14 +90,8 @@ export default async function DashboardLayout({
               <span>{isAdmin ? "Admin Portal: Full Access" : "Team Member: My Work & Reports"}</span>
             </div>
 
-            {/* Notification Bell Icon */}
-            <button
-              title="Notifications"
-              className="relative p-2.5 rounded-xl text-slate-600 hover:text-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <Bell className="w-4.5 h-4.5" />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#00b0ef] ring-2 ring-white dark:ring-slate-900" />
-            </button>
+            {/* Interactive Notification Bell */}
+            <NotificationBell />
 
             {/* User Profile Chip */}
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-800">
