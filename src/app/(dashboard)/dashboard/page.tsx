@@ -55,11 +55,11 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "gantt" | "team" | "projects">("overview");
   const [isMounted, setIsMounted] = useState(false);
 
-  // Strict role enforcement: Non-admins cannot view dashboard
+  // Strict role enforcement: Employees cannot view executive dashboard
   useEffect(() => {
     if (status === "authenticated") {
       const role = (session?.user as any)?.role;
-      if (role !== "admin") {
+      if (role !== "admin" && role !== "manager") {
         router.replace("/my-work");
       }
     }

@@ -16,6 +16,7 @@ import {
   Shield,
   Bell,
   Sparkles,
+  Users,
 } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -30,34 +31,45 @@ export default async function DashboardLayout({
   }
 
   const user = session.user as any;
-  const role = user.role || "user";
+  const role = user.role || "employee";
   const name = user.name || "User";
   const department = user.department || "Engineering";
   const isAdmin = role === "admin";
+  const isManager = role === "manager";
 
-  // Strict role segregation:
-  // Admin: Dashboard, Projects & Tasks, Team Reports, Discrepancies, Admin Portal
-  // Team Member (user): ONLY My Work and My Reports
+  // 3-Role segregation:
+  // 1. Admin: full access to Dashboard, Projects, Reports, Discrepancies, Admin Portal & User Directory
+  // 2. Manager: full access within their scope (Dashboard, Projects, Team Reports, Discrepancies, My Team)
+  // 3. Employee: My Work and My Reports only
   const navLinks = isAdmin
     ? [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Projects & Tasks", href: "/projects", icon: FolderKanban },
         { label: "Team Reports", href: "/reports", icon: FileBarChart2 },
         { label: "Discrepancies", href: "/discrepancies", icon: AlertTriangle },
+        { label: "User Directory", href: "/admin/users", icon: Users },
         { label: "Admin Portal", href: "/admin", icon: Shield },
+      ]
+    : isManager
+    ? [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Projects & Tasks", href: "/projects", icon: FolderKanban },
+        { label: "Team Reports", href: "/reports", icon: FileBarChart2 },
+        { label: "Discrepancies", href: "/discrepancies", icon: AlertTriangle },
+        { label: "My Team", href: "/admin/users", icon: Users },
       ]
     : [
         { label: "My Work", href: "/my-work", icon: CheckSquare },
         { label: "My Reports", href: "/my-reports", icon: FileBarChart2 },
       ];
 
-  const homeHref = isAdmin ? "/dashboard" : "/my-work";
+  const homeHref = isAdmin || isManager ? "/dashboard" : "/my-work";
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased">
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 w-full border-b border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs">
-        <div className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="w-full px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Logo & Brand */}
           <div className="flex items-center gap-8">
             <Link href={homeHref} className="hover:opacity-90 transition-opacity">
@@ -87,7 +99,13 @@ export default async function DashboardLayout({
             {/* Context Badge */}
             <div className="hidden xl:flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-100 dark:bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
               <Sparkles className="w-3.5 h-3.5 text-[#00b0ef]" />
-              <span>{isAdmin ? "Admin Portal: Full Access" : "Team Member: My Work & Reports"}</span>
+              <span>
+                {isAdmin
+                  ? "Admin: Full System Access"
+                  : isManager
+                  ? "Manager: Team & Projects Scope"
+                  : "Employee: My Work & Reports"}
+              </span>
             </div>
 
             {/* Interactive Notification Bell */}
@@ -105,7 +123,7 @@ export default async function DashboardLayout({
               </div>
 
               <Badge
-                variant={isAdmin ? "cyan" : "secondary"}
+                variant={isAdmin ? "cyan" : isManager ? "default" : "secondary"}
                 className="text-xs uppercase font-bold tracking-wider px-2 py-0.5"
               >
                 {role}
@@ -117,8 +135,8 @@ export default async function DashboardLayout({
         </div>
       </header>
 
-      {/* Main App Page View - Widescreen Container */}
-      <main className="flex-1 w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-6">
+      {/* Main App Page View - Full-width Edge-to-Edge Container */}
+      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 py-5 pb-24 md:pb-6">
         {children}
       </main>
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
-import { requireAuth, requireAdmin } from "@/lib/auth";
+import { requireAuth, requireAdminOrManager } from "@/lib/auth";
 import { createUserSchema } from "@/types/schemas";
 import { logAuditEvent } from "@/lib/audit";
 import bcrypt from "bcryptjs";
@@ -13,11 +13,32 @@ export async function GET(req: NextRequest) {
     const sessionUser = await requireAuth();
     await connectDB();
 
-    const isAdmin = sessionUser.role === "admin";
-    const filter = isAdmin ? {} : { isActive: true };
+    const { searchParams } = new URL(req.url);
+    const scope = searchParams.get("scope");
+
+    let filter: any = {};
+
+    if (sessionUser.role === "admin") {
+      filter = scope === "active" ? { isActive: true } : {};
+    } else if (sessionUser.role === "manager") {
+      // In manager team directory, view their team. When picking members, view active users.
+      if (scope === "team") {
+        filter = {
+          $or: [
+            { _id: sessionUser.id },
+            { managerId: sessionUser.id },
+            { createdBy: sessionUser.id },
+          ],
+        };
+      } else {
+        filter = { isActive: true };
+      }
+    } else {
+      filter = { isActive: true };
+    }
 
     const users = await User.find(filter)
-      .select("name email role department avatar isActive createdAt")
+      .select("name email role department avatar isActive managerId createdBy createdAt")
       .sort({ name: 1 })
       .lean();
 
@@ -32,7 +53,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const adminUser = await requireAdmin();
+    const sessionUser = await requireAdminOrManager();
     await connectDB();
 
     const body = await req.json();
@@ -52,21 +73,31 @@ export async function POST(req: NextRequest) {
     const rawPassword = validated.password?.trim() || "password123";
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
+    // If Manager is creating user, enforce role = "employee" and assign managerId
+    const assignedRole =
+      sessionUser.role === "manager" ? "employee" : validated.role || "employee";
+    const managerId =
+      sessionUser.role === "manager"
+        ? sessionUser.id
+        : validated.managerId || null;
+
     const newUser = await User.create({
       name: validated.name.trim(),
       email: validated.email.trim().toLowerCase(),
       password: hashedPassword,
-      role: validated.role || "user",
+      role: assignedRole,
       department: validated.department?.trim() || "Engineering",
+      managerId: managerId,
+      createdBy: sessionUser.id,
       isActive: true,
     });
 
     await logAuditEvent({
       actor: {
-        userId: adminUser.id,
-        name: adminUser.name,
-        role: adminUser.role,
-        email: adminUser.email,
+        userId: sessionUser.id,
+        name: sessionUser.name,
+        role: sessionUser.role,
+        email: sessionUser.email,
       },
       action: "CREATE",
       entityType: "User",

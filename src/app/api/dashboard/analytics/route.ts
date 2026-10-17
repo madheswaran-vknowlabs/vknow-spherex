@@ -16,7 +16,14 @@ export async function GET(req: NextRequest) {
 
     // Fetch projects
     const projectQuery: any = { isArchived: false };
-    if (user.role !== "admin") {
+    let teamUserIds: string[] | null = null;
+    if (user.role === "manager") {
+      const myEmployees = await User.find({
+        $or: [{ createdBy: user.id }, { managerId: user.id }],
+      }).select("_id");
+      teamUserIds = [user.id, ...myEmployees.map((e) => e._id.toString())];
+      projectQuery.members = { $in: teamUserIds };
+    } else if (user.role !== "admin") {
       projectQuery.members = user.id;
     }
     if (selectedProjectId && selectedProjectId !== "ALL") {
@@ -37,7 +44,15 @@ export async function GET(req: NextRequest) {
         .populate("userId", "name department")
         .sort({ weekStartDate: 1 })
         .lean(),
-      User.find({ isActive: true }).select("name email department avatar role").lean(),
+      User.find(
+        user.role === "admin"
+          ? { isActive: true }
+          : user.role === "manager" && teamUserIds
+          ? { _id: { $in: teamUserIds }, isActive: true }
+          : { _id: user.id }
+      )
+        .select("name email department avatar role")
+        .lean(),
     ]);
 
     // 1. Health Distribution

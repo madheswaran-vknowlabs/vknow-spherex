@@ -33,13 +33,13 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [selectedHealth, setSelectedHealth] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("table");
 
-  // Strict role enforcement: Non-admins cannot view portfolio list
+  // Strict role enforcement: Employees cannot view portfolio list
   useEffect(() => {
     if (status === "authenticated") {
       const role = (session?.user as any)?.role;
-      if (role !== "admin") {
+      if (role !== "admin" && role !== "manager") {
         router.replace("/my-work");
       }
     }

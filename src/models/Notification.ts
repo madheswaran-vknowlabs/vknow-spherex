@@ -29,19 +29,6 @@ const NotificationSchema = new Schema<INotification>(
     message: { type: String, required: true },
     type: {
       type: String,
-      enum: [
-        "task_assigned",
-        "task_overdue",
-        "task_blocked",
-        "dependency_slipped",
-        "stage_approval_needed",
-        "stage_approved",
-        "stage_rejected",
-        "weekly_reminder",
-        "discrepancy_raised",
-        "discrepancy_resolved",
-        "system",
-      ],
       default: "system",
       index: true,
     },
@@ -54,7 +41,7 @@ const NotificationSchema = new Schema<INotification>(
 NotificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 
 export const Notification: Model<INotification> =
-  mongoose.models.Notification ||
+  (mongoose.models.Notification as Model<INotification>) ||
   mongoose.model<INotification>("Notification", NotificationSchema);
 
 export default Notification;

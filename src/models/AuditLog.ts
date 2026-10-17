@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IAuditActor {
   userId?: mongoose.Types.ObjectId | null;
   name: string;
-  role: "admin" | "user" | "system";
+  role: "admin" | "manager" | "employee" | "user" | "system" | string;
   email?: string;
 }
 
@@ -26,7 +26,7 @@ const AuditActorSchema = new Schema<IAuditActor>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     name: { type: String, required: true },
-    role: { type: String, enum: ["admin", "user", "system"], required: true },
+    role: { type: String, required: true },
     email: { type: String, default: "" },
   },
   { _id: false }

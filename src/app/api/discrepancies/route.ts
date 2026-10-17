@@ -31,8 +31,22 @@ export async function GET(req: NextRequest) {
     if (type && type !== "ALL") query.type = type;
     if (raisedById) query.raisedById = raisedById;
 
-    // RBAC: Non-admin users see discrepancies for projects they are assigned to or raised by them
-    if (user.role !== "admin") {
+    // RBAC:
+    // Admin sees all.
+    // Manager sees discrepancies for their team's projects or raised by their team.
+    // Employee sees discrepancies for projects they are assigned to or raised by them.
+    if (user.role === "manager") {
+      const myEmployees = await User.find({
+        $or: [{ createdBy: user.id }, { managerId: user.id }],
+      }).select("_id");
+      const teamIds = [user.id, ...myEmployees.map((e) => e._id.toString())];
+      const teamProjects = await Project.find({
+        members: { $in: teamIds },
+        isArchived: false,
+      }).select("_id");
+      const projectIds = teamProjects.map((p) => p._id);
+      query.$or = [{ projectId: { $in: projectIds } }, { raisedById: { $in: teamIds } }];
+    } else if (user.role !== "admin") {
       const userProjects = await Project.find({
         members: user.id,
         isArchived: false,

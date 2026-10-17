@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import { WeeklyUpdate, Task, Stage, Project, Setting, Notification } from "@/models";
+import { WeeklyUpdate, Task, Stage, Project, Setting, Notification, User } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { createWeeklyUpdateSchema } from "@/types/schemas";
 import { logAuditEvent } from "@/lib/audit";
@@ -22,10 +22,20 @@ export async function GET(req: NextRequest) {
 
     const query: any = {};
 
-    if (user.role !== "admin") {
+    if (user.role === "admin") {
+      if (userId) query.userId = userId;
+    } else if (user.role === "manager") {
+      const myEmployees = await User.find({
+        $or: [{ createdBy: user.id }, { managerId: user.id }],
+      }).select("_id");
+      const teamIds = [user.id, ...myEmployees.map((e) => e._id.toString())];
+      if (userId && teamIds.includes(userId)) {
+        query.userId = userId;
+      } else {
+        query.userId = { $in: teamIds };
+      }
+    } else {
       query.userId = user.id;
-    } else if (userId) {
-      query.userId = userId;
     }
 
     if (projectId) query.projectId = projectId;

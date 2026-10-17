@@ -1,4 +1,4 @@
-export type Role = "admin" | "user";
+export type Role = "admin" | "manager" | "employee" | "user";
 
 export type StageName =
   | "Requirement Discussion"

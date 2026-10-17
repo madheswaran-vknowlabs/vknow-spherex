@@ -211,7 +211,7 @@ export default function LoginPage() {
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5">
               <Sparkles className="w-3.5 h-3.5 text-[#00b0ef]" />
-              <span>1-Click Test Accounts</span>
+              <span>1-Click Test Accounts (3 Roles)</span>
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               <button
@@ -239,8 +239,8 @@ export default function LoginPage() {
                   <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Sarah Jenkins
                   </span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
-                    Lead
+                  <Badge variant="cyan" className="text-[10px] px-1.5 py-0 font-bold bg-[#00b0ef]/10 text-[#007ea8] border-[#00b0ef]/20">
+                    Manager
                   </Badge>
                 </div>
                 <div className="text-xs text-slate-500 truncate">sarah.lead@vknowlabs.com</div>
@@ -256,7 +256,7 @@ export default function LoginPage() {
                     Alex Rivera
                   </span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
-                    PWA Dev
+                    Employee
                   </Badge>
                 </div>
                 <div className="text-xs text-slate-500 truncate">alex.dev@vknowlabs.com</div>
@@ -264,18 +264,18 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => quickFill("rohit.qa@vknowlabs.com")}
+                onClick={() => quickFill("chen.fullstack@vknowlabs.com")}
                 className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                    Rohit Verma
+                    Chen Wei
                   </span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
-                    QA
+                    Employee
                   </Badge>
                 </div>
-                <div className="text-xs text-slate-500 truncate">rohit.qa@vknowlabs.com</div>
+                <div className="text-xs text-slate-500 truncate">chen.fullstack@vknowlabs.com</div>
               </button>
             </div>
           </div>

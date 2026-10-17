@@ -6,7 +6,7 @@ export interface LogAuditOptions {
   actor: {
     userId?: string | mongoose.Types.ObjectId | null;
     name: string;
-    role: "admin" | "user" | "system";
+    role: "admin" | "manager" | "employee" | "user" | "system" | string;
     email?: string;
   };
   action: string;

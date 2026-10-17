@@ -39,11 +39,11 @@ export default function AdminReportsPage() {
   const [activeTab, setActiveTab] = useState<"projects" | "team" | "compliance" | "tasks">("projects");
   const [snapshotLoading, setSnapshotLoading] = useState(false);
 
-  // Redirect non-admins to /my-reports
+  // Redirect non-admins and non-managers to /my-reports
   useEffect(() => {
     if (status === "authenticated") {
       const role = (session?.user as any)?.role;
-      if (role !== "admin") {
+      if (role !== "admin" && role !== "manager") {
         router.replace("/my-reports");
       }
     }

@@ -4,7 +4,9 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password?: string;
-  role: "admin" | "user";
+  role: "admin" | "manager" | "employee" | "user";
+  managerId?: mongoose.Types.ObjectId | null;
+  createdBy?: mongoose.Types.ObjectId | null;
   department?: string;
   avatar?: string;
   isActive: boolean;
@@ -18,7 +20,14 @@ const UserSchema = new Schema<IUser>(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     password: { type: String, select: false },
-    role: { type: String, enum: ["admin", "user"], default: "user", index: true },
+    role: {
+      type: String,
+      enum: ["admin", "manager", "employee", "user"],
+      default: "employee",
+      index: true,
+    },
+    managerId: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
     department: { type: String, default: "Engineering" },
     avatar: { type: String },
     isActive: { type: Boolean, default: true, index: true },

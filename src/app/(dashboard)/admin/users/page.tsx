@@ -26,17 +26,26 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+import { useSession } from "next-auth/react";
+
 interface UserItem {
   _id: string;
   name: string;
   email: string;
-  role: "admin" | "user";
+  role: "admin" | "manager" | "employee" | "user";
   department?: string;
   isActive: boolean;
+  managerId?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
 export default function AdminUsersPage() {
+  const { data: session } = useSession();
+  const currentRole = (session?.user as any)?.role || "admin";
+  const isManager = currentRole === "manager";
+  const isAdmin = currentRole === "admin";
+
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -47,7 +56,7 @@ export default function AdminUsersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"admin" | "user">("user");
+  const [role, setRole] = useState<"admin" | "manager" | "employee" | "user">("employee");
   const [department, setDepartment] = useState("Engineering");
   const [password, setPassword] = useState("password123");
   const [submitting, setSubmitting] = useState(false);
@@ -60,7 +69,8 @@ export default function AdminUsersPage() {
 
   const fetchUsers = () => {
     setLoading(true);
-    fetch("/api/users")
+    const endpoint = isManager ? "/api/users?scope=team" : "/api/users";
+    fetch(endpoint)
       .then((res) => res.json())
       .then((res) => {
         if (res.success) {
@@ -73,7 +83,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [isManager]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,22 +226,27 @@ export default function AdminUsersPage() {
             </Link>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-            <span>Employee &amp; User Directory</span>
+            <span>{isManager ? "My Team Directory" : "Employee & User Directory"}</span>
             <Badge variant="cyan" className="text-xs font-mono">
-              {totalEmployees} Total
+              {totalEmployees} {isManager ? "Team Members" : "Total"}
             </Badge>
           </h1>
           <p className="text-sm text-slate-500">
-            Create employee accounts, assign project permissions, configure departments, and manage access.
+            {isManager
+              ? "Onboard and manage employees in your engineering team, assign project roles, and track access."
+              : "Create employee and manager accounts, assign system roles, and configure organization-wide access."}
           </p>
         </div>
 
         <Button
-          onClick={() => setIsCreateOpen(true)}
-          className="h-11 px-5 rounded-xl bg-[#00b0ef] hover:bg-[#009ad4] text-white font-bold text-sm shadow-sm flex items-center gap-2 shrink-0"
+          onClick={() => {
+            setRole("employee");
+            setIsCreateOpen(true);
+          }}
+          className="h-11 px-5 rounded-xl bg-[#00b0ef] hover:bg-[#009ad4] text-white font-bold text-sm shadow-sm flex items-center gap-2 shrink-0 cursor-pointer"
         >
           <UserPlus className="w-4.5 h-4.5" />
-          <span>Add New Employee</span>
+          <span>{isManager ? "Onboard Team Employee" : "Add New Employee / Manager"}</span>
         </Button>
       </div>
 
@@ -393,17 +408,27 @@ export default function AdminUsersPage() {
                       <td className="py-4 px-4">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${
-                            isAdminUser
+                            u.role === "admin"
                               ? "bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-                              : "bg-[#e0f6fd] text-[#00b0ef] dark:bg-[#0f2e42] dark:text-[#00b0ef] border border-[#00b0ef]/20"
+                              : u.role === "manager"
+                              ? "bg-[#e0f6fd] text-[#007ea8] dark:bg-[#0f2e42] dark:text-[#38c5f5] border border-[#00b0ef]/30"
+                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                           }`}
                         >
-                          {isAdminUser ? (
+                          {u.role === "admin" ? (
                             <ShieldCheck className="w-3.5 h-3.5" />
+                          ) : u.role === "manager" ? (
+                            <Sparkles className="w-3.5 h-3.5" />
                           ) : (
                             <Users className="w-3.5 h-3.5" />
                           )}
-                          <span>{isAdminUser ? "Administrator" : "Team Member"}</span>
+                          <span>
+                            {u.role === "admin"
+                              ? "Administrator"
+                              : u.role === "manager"
+                              ? "Manager"
+                              : "Employee"}
+                          </span>
                         </span>
                       </td>
 
@@ -546,14 +571,21 @@ export default function AdminUsersPage() {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold">System Role</Label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as any)}
-                    className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-medium text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-                  >
-                    <option value="user">Team Member (My Work &amp; Reports)</option>
-                    <option value="admin">Administrator (Full Access)</option>
-                  </select>
+                  {isManager ? (
+                    <div className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center text-sm font-semibold text-[#00b0ef]">
+                      Employee (Assigned to Your Team)
+                    </div>
+                  ) : (
+                    <select
+                      value={role}
+                      onChange={(e) => setRole(e.target.value as any)}
+                      className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-medium text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
+                    >
+                      <option value="employee">Employee (My Work &amp; Reports)</option>
+                      <option value="manager">Manager (Team &amp; Projects)</option>
+                      <option value="admin">Administrator (Full Access)</option>
+                    </select>
+                  )}
                 </div>
               </div>
 

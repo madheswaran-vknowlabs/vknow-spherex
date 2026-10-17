@@ -41,11 +41,11 @@ export default function DiscrepanciesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Strict role enforcement: Non-admins are redirected to /my-work
+  // Strict role enforcement: Employees are redirected to /my-work
   useEffect(() => {
     if (status === "authenticated") {
       const role = (session?.user as any)?.role;
-      if (role !== "admin") {
+      if (role !== "admin" && role !== "manager") {
         router.replace("/my-work");
       }
     }

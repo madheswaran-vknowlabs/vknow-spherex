@@ -109,7 +109,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id as string;
-        (session.user as any).role = token.role as "admin" | "user";
+        (session.user as any).role = token.role as "admin" | "manager" | "employee" | "user";
         (session.user as any).department = token.department as string;
         (session.user as any).avatar = token.avatar as string;
       }
@@ -126,7 +126,7 @@ export async function getSessionUser() {
         id: string;
         name: string;
         email: string;
-        role: "admin" | "user";
+        role: "admin" | "manager" | "employee" | "user";
         department?: string;
         avatar?: string;
       }
@@ -149,6 +149,17 @@ export async function requireAdmin() {
   if (user.role !== "admin") {
     throw new Response(
       JSON.stringify({ error: "Forbidden. Admin privileges required." }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  return user;
+}
+
+export async function requireAdminOrManager() {
+  const user = await requireAuth();
+  if (user.role !== "admin" && user.role !== "manager") {
+    throw new Response(
+      JSON.stringify({ error: "Forbidden. Admin or Manager privileges required." }),
       { status: 403, headers: { "Content-Type": "application/json" } }
     );
   }

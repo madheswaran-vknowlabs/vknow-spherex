@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import { Project, Stage, Task, Setting } from "@/models";
-import { requireAuth, requireAdmin } from "@/lib/auth";
+import { Project, Stage, Task, Setting, User } from "@/models";
+import { requireAuth, requireAdminOrManager } from "@/lib/auth";
 import { createProjectSchema } from "@/types/schemas";
 import { logAuditEvent } from "@/lib/audit";
 import { DEFAULT_STAGES } from "@/types/models";
@@ -22,8 +22,17 @@ export async function GET(req: NextRequest) {
 
     const query: any = { isArchived: false };
 
-    // Regular users only see projects they belong to
-    if (user.role !== "admin") {
+    // Scoping by role:
+    // Admin: full access
+    // Manager: sees projects containing themselves or employees created by them
+    // Employee: only projects where they are assigned members
+    if (user.role === "manager") {
+      const myEmployees = await User.find({
+        $or: [{ createdBy: user.id }, { managerId: user.id }],
+      }).select("_id");
+      const teamIds = [user.id, ...myEmployees.map((e) => e._id.toString())];
+      query.members = { $in: teamIds };
+    } else if (user.role !== "admin") {
       query.members = user.id;
     }
 
@@ -86,7 +95,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAdmin();
+    const user = await requireAdminOrManager();
     await connectDB();
 
     const body = await req.json();
@@ -130,6 +139,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const membersList = [...(validated.members || [])];
+    if (!membersList.includes(user.id)) {
+      membersList.push(user.id);
+    }
+
     // 1. Create Project
     const project = await Project.create({
       name: validated.name.trim(),
@@ -141,15 +155,17 @@ export async function POST(req: NextRequest) {
       plannedStartDate: startDate,
       plannedEndDate: endDate,
       progress: 0,
-      members: validated.members || [],
+      members: membersList,
       lagInDays: 0,
       isArchived: false,
     });
 
-    // 2. Automatically generate the 8 lifecycle stages with calculated duration
+    // 2. Automatically generate the lifecycle stages with calculated duration
     const settings = await Setting.findOne().lean();
-    const stageTemplates = settings?.defaultStageTemplates || DEFAULT_STAGES;
-    const totalDays = Math.max(8, differenceInDays(endDate, startDate));
+    const stageTemplates = (validated.stages && validated.stages.length > 0)
+      ? validated.stages
+      : (settings?.defaultStageTemplates || DEFAULT_STAGES);
+    const totalDays = Math.max(stageTemplates.length, differenceInDays(endDate, startDate));
     const daysPerStage = Math.max(1, Math.floor(totalDays / stageTemplates.length));
 
     const stageDocs = [];
