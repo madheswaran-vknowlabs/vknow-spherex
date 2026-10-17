@@ -19,9 +19,12 @@ import {
   Building2,
   FolderPlus,
   UserCheck,
+  RefreshCw,
 } from "lucide-react";
 import { addDays, addMonths, format } from "date-fns";
 import { DEFAULT_STAGES } from "@/types/models";
+import { generateProjectCode } from "@/lib/utils";
+
 
 interface UserOption {
   _id: string;
@@ -43,6 +46,7 @@ export function CreateProjectModal({ onSuccess }: CreateProjectModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [isCustomCode, setIsCustomCode] = useState(false);
   const [client, setClient] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -56,22 +60,20 @@ export function CreateProjectModal({ onSuccess }: CreateProjectModalProps) {
   // Auto-generate code from name
   const handleNameChange = (val: string) => {
     setName(val);
-    if (!code || code === generateProjectCode(name)) {
+    if (!isCustomCode) {
       setCode(generateProjectCode(val));
     }
   };
 
-  const generateProjectCode = (str: string) => {
-    if (!str.trim()) return "";
-    const words = str.trim().split(/\s+/);
-    if (words.length === 1) {
-      return words[0].slice(0, 4).toUpperCase();
-    }
-    return words
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 5)
-      .toUpperCase();
+  const handleCodeChange = (val: string) => {
+    const formatted = val.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+    setCode(formatted);
+    setIsCustomCode(true);
+  };
+
+  const handleResetCode = () => {
+    setIsCustomCode(false);
+    setCode(generateProjectCode(name));
   };
 
   useEffect(() => {
@@ -153,6 +155,7 @@ export function CreateProjectModal({ onSuccess }: CreateProjectModalProps) {
   const resetForm = () => {
     setName("");
     setCode("");
+    setIsCustomCode(false);
     setClient("");
     setDescription("");
     setError(null);
@@ -209,8 +212,8 @@ export function CreateProjectModal({ onSuccess }: CreateProjectModalProps) {
               {/* Name & Code */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div className="sm:col-span-2 space-y-1.5">
-                  <Label htmlFor="proj-name" className="text-xs font-bold">
-                    Project Name *
+                  <Label htmlFor="proj-name" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Project Name <span className="text-rose-500">*</span>
                   </Label>
                   <Input
                     id="proj-name"
@@ -218,21 +221,44 @@ export function CreateProjectModal({ onSuccess }: CreateProjectModalProps) {
                     value={name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     required
-                    className="h-11 text-sm rounded-xl font-medium"
+                    className="h-11 text-sm rounded-xl font-medium focus:ring-2 focus:ring-[#00b0ef]"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="proj-code" className="text-xs font-bold">
-                    Project Code *
-                  </Label>
-                  <Input
-                    id="proj-code"
-                    placeholder="e.g. NMP-CORE"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    required
-                    className="h-11 text-sm font-mono font-bold uppercase rounded-xl"
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="proj-code" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Project Code <span className="text-rose-500">*</span>
+                    </Label>
+                    {!isCustomCode ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2 py-0.5 rounded-full">
+                        <Sparkles className="w-2.5 h-2.5" /> Auto
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleResetCode}
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-[#00b0ef] dark:text-slate-400 dark:hover:text-[#00b0ef] transition-colors"
+                        title="Reset to auto-generated code"
+                      >
+                        <RefreshCw className="w-2.5 h-2.5" /> Auto
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="proj-code"
+                      placeholder="e.g. NMP"
+                      value={code}
+                      onChange={(e) => handleCodeChange(e.target.value)}
+                      required
+                      className="h-11 text-sm font-mono font-bold uppercase rounded-xl pr-8 tracking-wider bg-slate-50/50 dark:bg-slate-900/50 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#00b0ef] transition-colors"
+                    />
+                    {!isCustomCode && code && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#00b0ef]">
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

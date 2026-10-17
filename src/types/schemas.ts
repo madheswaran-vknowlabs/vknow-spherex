@@ -26,7 +26,7 @@ export const updateUserSchema = z.object({
 // Project Schemas
 export const createProjectSchema = z.object({
   name: z.string().min(2, "Project name is required"),
-  code: z.string().min(2, "Project code is required").toUpperCase(),
+  code: z.string().toUpperCase().optional().or(z.literal("")),
   description: z.string().optional(),
   client: z.string().optional(),
   plannedStartDate: z.string().or(z.date()),

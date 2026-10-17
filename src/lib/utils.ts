@@ -24,3 +24,41 @@ export function getHealthBadgeClass(health: "Green" | "Amber" | "Red" | string):
       return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
   }
 }
+
+/**
+ * Auto-generate an intuitive, clean, professional project code from a project name.
+ * Examples:
+ * - "SphereX" -> "SPHER"
+ * - "SphereX AI" -> "SPH-AI"
+ * - "SphereX AI Assistant" -> "SAA"
+ * - "NextGen Microservices Platform" -> "NMP"
+ * - "Customer Relationship Portal" -> "CRP"
+ */
+export function generateProjectCode(name: string): string {
+  if (!name || !name.trim()) return "";
+  
+  // Clean special characters except alphanumerics, spaces, and hyphens
+  const cleaned = name.replace(/[^a-zA-Z0-9\s-]/g, " ").trim();
+  const words = cleaned.split(/[\s-]+/).filter(Boolean);
+  
+  if (words.length === 0) return "";
+  
+  if (words.length === 1) {
+    const single = words[0].toUpperCase();
+    return single.length <= 5 ? single : single.slice(0, 5);
+  }
+  
+  if (words.length === 2) {
+    const w1 = words[0].slice(0, 3).toUpperCase();
+    const w2 = words[1].slice(0, 3).toUpperCase();
+    return `${w1}-${w2}`;
+  }
+  
+  // 3 or more words: take initials of each word up to 6 characters
+  return words
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 6)
+    .toUpperCase();
+}
+

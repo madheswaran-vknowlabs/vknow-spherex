@@ -6,6 +6,7 @@ import { createProjectSchema } from "@/types/schemas";
 import { logAuditEvent } from "@/lib/audit";
 import { DEFAULT_STAGES } from "@/types/models";
 import { addDays, differenceInDays } from "date-fns";
+import { generateProjectCode } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -91,13 +92,32 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = createProjectSchema.parse(body);
 
+    // Compute or validate project code
+    let projectCode = (validated.code && validated.code.trim())
+      ? validated.code.trim().toUpperCase()
+      : generateProjectCode(validated.name);
+
+    if (!projectCode) {
+      projectCode = "PROJ";
+    }
+
     // Verify unique project code
-    const existing = await Project.findOne({ code: validated.code.toUpperCase() });
-    if (existing) {
-      return NextResponse.json(
-        { success: false, error: `Project code '${validated.code}' already exists.` },
-        { status: 400 }
-      );
+    if (validated.code && validated.code.trim()) {
+      const existing = await Project.findOne({ code: projectCode });
+      if (existing) {
+        return NextResponse.json(
+          { success: false, error: `Project code '${projectCode}' already exists.` },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Auto-generated: resolve collision if exists by appending counter
+      const baseCode = projectCode;
+      let counter = 1;
+      while (await Project.findOne({ code: projectCode })) {
+        counter++;
+        projectCode = `${baseCode}-${counter}`;
+      }
     }
 
     const startDate = new Date(validated.plannedStartDate);
@@ -113,7 +133,7 @@ export async function POST(req: NextRequest) {
     // 1. Create Project
     const project = await Project.create({
       name: validated.name.trim(),
-      code: validated.code.trim().toUpperCase(),
+      code: projectCode,
       description: validated.description || "",
       client: validated.client || "Internal",
       status: "Active",
