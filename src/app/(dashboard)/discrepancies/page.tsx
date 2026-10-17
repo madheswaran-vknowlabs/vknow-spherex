@@ -102,19 +102,19 @@ export default function DiscrepanciesPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
               Work Lag &amp; Discrepancy Registry
             </h1>
-            <Badge variant="cyan" className="text-[10px] font-bold uppercase tracking-wider">
+            <Badge variant="cyan" className="text-xs font-bold uppercase tracking-wider">
               {stats.total} Total
             </Badge>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Log, track, and remediate scope changes, effort overruns, delivery delays, and quality blockers.
           </p>
         </div>
@@ -123,9 +123,9 @@ export default function DiscrepanciesPage() {
           <Button
             size="sm"
             onClick={() => setIsRaiseModalOpen(true)}
-            className="bg-[#00b0ef] hover:bg-[#007ea8] text-white font-bold text-xs shadow-xs flex items-center gap-1.5"
+            className="bg-[#00b0ef] hover:bg-[#007ea8] text-white font-bold text-xs shadow-xs flex items-center gap-2 h-10 px-4 rounded-xl"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>Raise Discrepancy</span>
           </Button>
         </div>

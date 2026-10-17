@@ -39,6 +39,7 @@ import {
 import { format } from "date-fns";
 import { RaiseDiscrepancyModal } from "@/components/discrepancies/RaiseDiscrepancyModal";
 import { ResolveDiscrepancyModal } from "@/components/discrepancies/ResolveDiscrepancyModal";
+import { FrappeGantt, GanttItem } from "@/components/timeline/FrappeGantt";
 
 export default function ProjectDetailPage({
   params,
@@ -52,6 +53,7 @@ export default function ProjectDetailPage({
   const [projectData, setProjectData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<"stepper" | "gantt">("stepper");
 
   // Users for assignees
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
@@ -329,6 +331,34 @@ export default function ProjectDetailPage({
   const isOverBudget = effortVarianceHours > 0;
   const atRiskTasksCount = tasks.filter((t: any) => t.isAtRisk).length;
 
+  // Prepare items for interactive Frappe Gantt
+  const projectGanttItems: GanttItem[] = [
+    ...stages.map((s: any) => ({
+      id: `stage-${s._id}`,
+      name: `Stage ${s.order}: ${s.name}`,
+      start: s.plannedStartDate || project.plannedStartDate || new Date(),
+      end: s.plannedEndDate || project.plannedEndDate || new Date(),
+      progress: s.progress || 0,
+      type: "stage" as const,
+      status: s.status,
+      lagInDays: s.lagInDays || 0,
+      isAtRisk: s.status === "Blocked",
+    })),
+    ...tasks.map((t: any) => ({
+      id: String(t._id),
+      name: t.title,
+      start: t.plannedStartDate || new Date(),
+      end: t.plannedEndDate || new Date(),
+      progress: t.progress || 0,
+      type: "task" as const,
+      status: t.status,
+      assignee: t.assigneeId?.name,
+      lagInDays: t.lagInDays || 0,
+      isAtRisk: t.isAtRisk,
+      dependencies: t.blockedBy?.map(String) || [],
+    })),
+  ];
+
   return (
     <div className="space-y-4">
       {/* Top Breadcrumb & Project Header */}
@@ -501,17 +531,57 @@ export default function ProjectDetailPage({
         </div>
       )}
 
-      {/* 8-Stage Interactive Lifecycle Stepper (High Density, Sleek) */}
-      <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#00b0ef]" />
-            <span>8-Stage Lifecycle Stepper &bull; Click any stage to inspect &amp; manage</span>
-          </span>
-          <span className="text-[11px] text-slate-500 font-normal">
-            Stage {currentSelectedStage.order} of {stages.length}
-          </span>
+      {/* View Mode Switcher: Stepper vs Gantt */}
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveView("stepper")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeView === "stepper"
+                ? "bg-[#00b0ef] text-white shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>8-Stage Lifecycle &amp; Tasks</span>
+          </button>
+          <button
+            onClick={() => setActiveView("gantt")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeView === "gantt"
+                ? "bg-[#00b0ef] text-white shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>Interactive Frappe Gantt Timeline</span>
+          </button>
         </div>
+
+        <span className="text-xs text-slate-500 hidden sm:inline">
+          {activeView === "stepper" ? "Stage-by-stage gating & approvals" : "Visual dependencies & schedule slips"}
+        </span>
+      </div>
+
+      {activeView === "gantt" ? (
+        <FrappeGantt
+          items={projectGanttItems}
+          title={`[${project.code}] ${project.name} — Gantt Timeline`}
+          defaultViewMode="Week"
+        />
+      ) : (
+        <>
+          {/* 8-Stage Interactive Lifecycle Stepper (High Density, Sleek) */}
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#00b0ef]" />
+                <span>8-Stage Lifecycle Stepper &bull; Click any stage to inspect &amp; manage</span>
+              </span>
+              <span className="text-[11px] text-slate-500 font-normal">
+                Stage {currentSelectedStage.order} of {stages.length}
+              </span>
+            </div>
 
         {/* Stepper Cards Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
@@ -861,6 +931,8 @@ export default function ProjectDetailPage({
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {/* Project Discrepancies & Work Lag Registry */}
       <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">

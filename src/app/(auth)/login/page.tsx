@@ -44,8 +44,7 @@ export default function LoginPage() {
         setError(result.error);
         setLoading(false);
       } else {
-        router.push("/");
-        router.refresh();
+        window.location.href = "/";
       }
     } catch (err: any) {
       setError(err?.message || "Failed to sign in. Please try again.");

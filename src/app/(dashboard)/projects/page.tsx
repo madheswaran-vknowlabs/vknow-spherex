@@ -63,27 +63,34 @@ export default function ProjectsPage() {
       : 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Top Header & Fast Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <span>Project Portfolio</span>
             <Badge variant="cyan" className="font-mono text-xs">
               {totalCount} Active
             </Badge>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Monitor end-to-end lifecycle progress, work lag, and stage gates
+          <p className="text-sm text-slate-500 mt-1">
+            Monitor end-to-end lifecycle progress, work lag, and stage gates across all systems.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          <Link href="/dashboard">
+            <button className="h-9 px-3.5 rounded-xl border border-[#00b0ef]/40 text-[#00b0ef] hover:bg-[#00b0ef]/10 font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-xs">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Executive Center</span>
+            </button>
+          </Link>
+
           {/* View toggle */}
           <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5 shadow-xs">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`p-2 rounded-lg text-xs font-medium transition-colors ${
                 viewMode === "grid"
                   ? "bg-[#00b0ef] text-white shadow-xs"
                   : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -94,7 +101,7 @@ export default function ProjectsPage() {
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`p-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`p-2 rounded-lg text-xs font-medium transition-colors ${
                 viewMode === "table"
                   ? "bg-[#00b0ef] text-white shadow-xs"
                   : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -110,72 +117,72 @@ export default function ProjectsPage() {
       </div>
 
       {/* Metrics Strip (Avoid Empty Space - High Density) */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Total Projects
             </div>
-            <div className="text-xl font-black text-slate-900 dark:text-white mt-0.5">
+            <div className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
               {totalCount}
             </div>
           </div>
-          <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-[#00b0ef]">
-            <FolderKanban className="w-4 h-4" />
+          <div className="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#00b0ef]">
+            <FolderKanban className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
               On Track
             </div>
-            <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
               {greenCount}
             </div>
           </div>
-          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600">
-            <CheckCircle className="w-4 h-4" />
+          <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600">
+            <CheckCircle className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+            <div className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               Warning Lag
             </div>
-            <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
+            <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
               {amberCount}
             </div>
           </div>
-          <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600">
-            <Clock className="w-4 h-4" />
+          <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600">
+            <Clock className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+            <div className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
               Critical Slip
             </div>
-            <div className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5">
+            <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-0.5">
               {redCount}
             </div>
           </div>
-          <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600">
-            <AlertTriangle className="w-4 h-4" />
+          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600">
+            <AlertTriangle className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="col-span-2 sm:col-span-1 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Avg Progress
             </div>
-            <div className="text-xl font-black text-[#00b0ef] mt-0.5">{avgProgress}%</div>
+            <div className="text-2xl font-black text-[#00b0ef] mt-0.5">{avgProgress}%</div>
           </div>
-          <div className="p-2 rounded-lg bg-[#e0f6fd] dark:bg-[#0f2e42] text-[#00b0ef]">
-            <Sparkles className="w-4 h-4" />
+          <div className="p-2.5 rounded-xl bg-[#e0f6fd] dark:bg-[#0f2e42] text-[#00b0ef]">
+            <Sparkles className="w-5 h-5" />
           </div>
         </div>
       </div>

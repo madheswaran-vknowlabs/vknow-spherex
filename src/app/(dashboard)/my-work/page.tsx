@@ -93,34 +93,34 @@ export default function MyWorkPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Top Banner & Fast Weekly Update Callout */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <span>My Work Cockpit</span>
             <Badge variant="cyan" className="font-mono text-xs">
               {summary.totalAssigned || 0} Assigned
             </Badge>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            1-tap deliverable updating, hours logging, and weekly status filing
+          <p className="text-sm text-slate-500 mt-1">
+            1-tap deliverable updating, hours logging, and weekly status filing.
           </p>
         </div>
 
         {/* Weekly submission reminder button */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {summary.hasSubmittedWeeklyUpdate ? (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+              <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />
               <span>Week {summary.currentWeekNumber} Filed</span>
             </div>
           ) : (
             <Button
               onClick={() => setIsUpdateModalOpen(true)}
-              className="h-9 px-4 text-xs font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white shadow-xs flex items-center gap-1.5 rounded-xl animate-pulse"
+              className="h-10 px-4 text-xs font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white shadow-xs flex items-center gap-2 rounded-xl animate-pulse"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-4 h-4" />
               <span>Submit Week {summary.currentWeekNumber} Update (&lt; 2 mins)</span>
             </Button>
           )}
@@ -128,72 +128,72 @@ export default function MyWorkPage() {
       </div>
 
       {/* KPI Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div
           onClick={() => setActiveTab("overdue")}
-          className={`p-3 rounded-xl border shadow-xs cursor-pointer transition-all ${
+          className={`p-4 rounded-2xl border shadow-xs cursor-pointer transition-all ${
             activeTab === "overdue"
               ? "border-rose-400 bg-rose-50/50 dark:bg-rose-950/40 ring-1 ring-rose-400"
               : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
               Overdue
             </span>
-            <AlertTriangle className="w-4 h-4 text-rose-500" />
+            <AlertTriangle className="w-4.5 h-4.5 text-rose-500" />
           </div>
-          <div className="text-xl font-black text-rose-600 dark:text-rose-400 mt-1">
+          <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">
             {summary.overdueCount || 0}
           </div>
         </div>
 
         <div
           onClick={() => setActiveTab("dueThisWeek")}
-          className={`p-3 rounded-xl border shadow-xs cursor-pointer transition-all ${
+          className={`p-4 rounded-2xl border shadow-xs cursor-pointer transition-all ${
             activeTab === "dueThisWeek"
               ? "border-[#00b0ef] bg-[#e0f6fd]/50 dark:bg-[#0f2e42]/50 ring-1 ring-[#00b0ef]"
               : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#00b0ef]">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#00b0ef]">
               Due This Week
             </span>
-            <Clock className="w-4 h-4 text-[#00b0ef]" />
+            <Clock className="w-4.5 h-4.5 text-[#00b0ef]" />
           </div>
-          <div className="text-xl font-black text-[#00b0ef] mt-1">
+          <div className="text-2xl font-black text-[#00b0ef] mt-1">
             {summary.dueThisWeekCount || 0}
           </div>
         </div>
 
         <div
           onClick={() => setActiveTab("all")}
-          className={`p-3 rounded-xl border shadow-xs cursor-pointer transition-all ${
+          className={`p-4 rounded-2xl border shadow-xs cursor-pointer transition-all ${
             activeTab === "all"
               ? "border-slate-400 bg-slate-50 dark:bg-slate-800/60 ring-1 ring-slate-400"
               : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               In Progress
             </span>
-            <CheckSquare className="w-4 h-4 text-slate-500" />
+            <CheckSquare className="w-4.5 h-4.5 text-slate-500" />
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-white mt-1">
+          <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">
             {summary.inProgressCount || 0}
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
               Week Hours
             </span>
-            <TrendingUp className="w-4 h-4 text-emerald-500" />
+            <TrendingUp className="w-4.5 h-4.5 text-emerald-500" />
           </div>
-          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
             {summary.hoursLoggedThisWeek || 0}h
           </div>
         </div>

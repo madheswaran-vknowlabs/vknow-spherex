@@ -57,7 +57,7 @@ async function seedDatabase() {
 
   const adminUsersData = [
     {
-      name: "Madheswaran (Admin)",
+      name: "Madheswaran",
       email: "admin@vknowlabs.com",
       password: hashedPassword,
       role: "admin",
