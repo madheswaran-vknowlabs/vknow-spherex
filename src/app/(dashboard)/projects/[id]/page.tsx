@@ -581,73 +581,87 @@ export default function ProjectDetailPage({
         />
       ) : (
         <>
-          {/* 8-Stage Interactive Lifecycle Stepper (High Density, Sleek) */}
-          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#00b0ef]" />
-                <span>8-Stage Lifecycle Stepper &bull; Click any stage to inspect &amp; manage</span>
-              </span>
-              <span className="text-[11px] text-slate-500 font-normal">
-                Stage {currentSelectedStage.order} of {stages.length}
-              </span>
+          {/* Compact Lifecycle Stepper (Minimalist, Single Row) */}
+          <div className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-800/60 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                  Lifecycle Stepper
+                </span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal hidden sm:inline">
+                  &bull; Click any stage to inspect &amp; manage
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <span className="text-slate-400 text-[10px]">Active Stage:</span>
+                <span className="font-semibold text-[#00b0ef] bg-[#e0f6fd]/80 dark:bg-[#00b0ef]/15 px-2 py-0.5 rounded text-[10px]">
+                  #{currentSelectedStage.order} {currentSelectedStage.name}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  ({currentSelectedStage.order}/{stages.length})
+                </span>
+              </div>
             </div>
 
-        {/* Stepper Cards Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-          {stages.map((stage: any) => {
-            const isSelected = String(stage._id) === String(selectedStageId);
-            const isApproved = stage.status === "Approved";
-            const isCompleted = stage.status === "Completed";
-            const isInProgress = stage.status === "In Progress";
-            const isBlocked = stage.status === "Blocked";
+            {/* Stepper Compact Track */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              {stages.map((stage: any) => {
+                const isSelected = String(stage._id) === String(selectedStageId);
+                const isApproved = stage.status === "Approved";
+                const isCompleted = stage.status === "Completed";
+                const isInProgress = stage.status === "In Progress";
+                const isBlocked = stage.status === "Blocked";
 
-            return (
-              <button
-                key={String(stage._id)}
-                onClick={() => setSelectedStageId(String(stage._id))}
-                className={`p-2.5 rounded-xl text-left transition-all relative border flex flex-col justify-between h-22 cursor-pointer ${
-                  isSelected
-                    ? "border-[#00b0ef] bg-[#e0f6fd]/40 dark:bg-[#0f2e42]/50 shadow-xs ring-1 ring-[#00b0ef]"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-slate-400">
-                    #{stage.order}
-                  </span>
-                  {isApproved ? (
-                    <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">
-                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                return (
+                  <button
+                    key={String(stage._id)}
+                    onClick={() => setSelectedStageId(String(stage._id))}
+                    type="button"
+                    className={`flex-1 min-w-[110px] sm:min-w-[120px] max-w-[170px] flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all border cursor-pointer select-none ${
+                      isSelected
+                        ? "border-[#00b0ef] bg-[#e0f6fd]/50 dark:bg-[#00b0ef]/20 shadow-xs ring-1 ring-[#00b0ef]"
+                        : "border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
+                    }`}
+                    title={`${stage.order}. ${stage.name} (${stage.status} - ${stage.percentComplete}%)`}
+                  >
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
+                        isApproved
+                          ? "bg-emerald-500 text-white"
+                          : isCompleted
+                          ? "bg-sky-500 text-white"
+                          : isBlocked
+                          ? "bg-rose-500 text-white"
+                          : isSelected
+                          ? "bg-[#00b0ef] text-white"
+                          : isInProgress
+                          ? "border border-[#00b0ef] text-[#00b0ef] bg-white dark:bg-slate-800"
+                          : "border border-slate-300 dark:border-slate-700 text-slate-400 bg-white dark:bg-slate-800"
+                      }`}
+                    >
+                      {isApproved || isCompleted ? (
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      ) : isBlocked ? (
+                        "!"
+                      ) : (
+                        stage.order
+                      )}
                     </span>
-                  ) : isCompleted ? (
-                    <span className="w-4 h-4 rounded-full bg-sky-500 text-white flex items-center justify-center text-[10px]">
-                      <Check className="w-2.5 h-2.5 stroke-[3]" />
-                    </span>
-                  ) : isBlocked ? (
-                    <span className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px]">
-                      !
-                    </span>
-                  ) : isInProgress ? (
-                    <span className="w-2 h-2 rounded-full bg-[#00b0ef] animate-pulse" />
-                  ) : (
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700" />
-                  )}
-                </div>
 
-                <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 line-clamp-2 leading-tight">
-                  {stage.name}
-                </div>
-
-                <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
-                  <span>{stage.status}</span>
-                  <span className="font-bold text-[#00b0ef]">{stage.percentComplete}%</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                    <div className="min-w-0 flex-1 leading-tight">
+                      <div className="text-[11px] font-semibold truncate text-slate-800 dark:text-slate-200">
+                        {stage.name}
+                      </div>
+                      <div className="flex items-center justify-between text-[9px] text-slate-400 mt-0.5">
+                        <span className="truncate">{stage.status}</span>
+                        <span className="font-mono font-bold text-[#00b0ef] ml-1">{stage.percentComplete}%</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
       {/* Selected Stage Control Cockpit */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
