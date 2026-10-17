@@ -60,11 +60,11 @@ export default function LoginPage() {
 
   return (
     <div className="h-screen w-full flex overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {/* Left Column: Visual Hero Branding (60% Width Split) */}
-      <div className="hidden lg:flex lg:w-[60%] relative bg-gradient-to-br from-slate-950 via-[#0a1e2c] to-slate-950 text-white p-8 xl:p-12 flex-col justify-between overflow-hidden border-r border-slate-800/80">
-        {/* Glow Effects */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#00b0ef]/20 rounded-full blur-3xl -mr-28 -mt-28 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#007ea8]/20 rounded-full blur-3xl -ml-28 -mb-28 pointer-events-none" />
+      {/* Left Column: Visual Hero Branding (75% Width Split) */}
+      <div className="hidden lg:flex lg:w-[75%] relative bg-gradient-to-br from-slate-950 via-[#0a1e2c] to-slate-950 text-white p-8 xl:p-12 flex-col justify-between overflow-hidden border-r border-slate-800/80">
+        {/* Ambient Glow Effects */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00b0ef]/15 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[450px] h-[450px] bg-[#007ea8]/15 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />
 
         {/* Top Header */}
         <div className="relative z-10 flex items-center justify-between">
@@ -74,42 +74,42 @@ export default function LoginPage() {
           </Badge>
         </div>
 
-        {/* Center Content: Headline & Sizable Vector Illustration */}
-        <div className="relative z-10 my-auto py-2 w-full max-w-2xl xl:max-w-3xl mx-auto flex flex-col justify-center">
+        {/* Center Content: Headline & Grand Vector Illustration */}
+        <div className="relative z-10 my-auto py-2 w-full max-w-3xl xl:max-w-4xl mx-auto flex flex-col justify-center">
           <div className="mb-4 text-center lg:text-left">
             <h1 className="text-3xl sm:text-4xl xl:text-5xl font-black tracking-tight text-white leading-tight">
               Requirement <span className="text-[#00b0ef]">to Release.</span>
             </h1>
-            <p className="mt-2 text-slate-300 text-xs sm:text-sm xl:text-base leading-relaxed max-w-xl">
+            <p className="mt-2 text-slate-300 text-xs sm:text-sm xl:text-base leading-relaxed max-w-2xl">
               Real-time work lag calculation, automated weekly rollups, immutable audit trails,
-              and executive gating for engineering delivery.
+              and executive stage gating for engineering delivery.
             </p>
           </div>
 
           {/* Sizable Vector Illustration Container */}
-          <div className="bg-slate-900/70 backdrop-blur-md rounded-3xl p-5 sm:p-6 xl:p-7 border border-slate-800 shadow-2xl w-full mx-auto">
-            <HeroIllustration className="w-full h-auto max-h-[380px] xl:max-h-[430px]" />
+          <div className="bg-slate-900/70 backdrop-blur-md rounded-3xl p-6 xl:p-8 border border-slate-800 shadow-2xl w-full mx-auto">
+            <HeroIllustration className="w-full h-auto max-h-[420px] xl:max-h-[480px]" />
           </div>
 
           {/* Value Props Row */}
-          <div className="grid grid-cols-3 gap-3.5 mt-4 w-full">
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
-              <div className="flex items-center gap-1.5 text-[#00b0ef] mb-0.5">
-                <CheckCircle2 className="w-4 h-4" />
+          <div className="grid grid-cols-3 gap-4 mt-4 w-full">
+            <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
+              <div className="flex items-center gap-2 text-[#00b0ef] mb-1">
+                <CheckCircle2 className="w-4.5 h-4.5" />
                 <span className="text-xs font-bold uppercase tracking-wider">8 Stages</span>
               </div>
               <p className="text-xs text-slate-300">Formal sign-offs &amp; gating</p>
             </div>
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
-              <div className="flex items-center gap-1.5 text-amber-400 mb-0.5">
-                <Clock className="w-4 h-4" />
+            <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
+              <div className="flex items-center gap-2 text-amber-400 mb-1">
+                <Clock className="w-4.5 h-4.5" />
                 <span className="text-xs font-bold uppercase tracking-wider">&lt; 2 Mins</span>
               </div>
               <p className="text-xs text-slate-300">Fast weekly update filing</p>
             </div>
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
-              <div className="flex items-center gap-1.5 text-emerald-400 mb-0.5">
-                <ShieldCheck className="w-4 h-4" />
+            <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
+              <div className="flex items-center gap-2 text-emerald-400 mb-1">
+                <ShieldCheck className="w-4.5 h-4.5" />
                 <span className="text-xs font-bold uppercase tracking-wider">Audit Log</span>
               </div>
               <p className="text-xs text-slate-300">Immutable diffs &amp; history</p>
@@ -124,65 +124,65 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Column: Sign In Form (40% Width Split - Neat & Crisp) */}
-      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-10 xl:p-12 overflow-y-auto bg-white dark:bg-slate-950">
-        <div className="w-full max-w-md space-y-6 my-auto">
+      {/* Right Column: Sign In Form (25% Width Split - Crisp, Compact, Fits Viewport) */}
+      <div className="w-full lg:w-[25%] flex items-center justify-center p-5 sm:p-6 xl:p-8 overflow-y-auto bg-white dark:bg-slate-950">
+        <div className="w-full max-w-sm space-y-5 my-auto">
           <div className="text-center lg:text-left">
             <div className="lg:hidden flex justify-center mb-4">
               <VKnowLogo size="lg" />
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
               Welcome Back
             </h2>
-            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-              Sign in to manage projects, update deliverables, or review stage sign-offs
+            <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              Sign in to manage projects &amp; deliverables
             </p>
           </div>
 
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm font-medium flex items-start gap-2.5">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-medium flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                Corporate Email Address
+          <form onSubmit={handleSubmit} className="space-y-3.5">
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Corporate Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="name@vknowlabs.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 text-sm sm:text-base rounded-xl"
+                  className="pl-9 h-11 text-xs sm:text-sm rounded-xl font-medium"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                <Label htmlFor="password" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Password
                 </Label>
-                <span className="text-xs font-semibold text-[#00b0ef]">
+                <span className="text-[11px] font-semibold text-[#00b0ef]">
                   Default: password123
                 </span>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 h-12 text-sm sm:text-base rounded-xl"
+                  className="pl-9 h-11 text-xs sm:text-sm rounded-xl font-mono"
                   required
                 />
               </div>
@@ -191,7 +191,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 text-base font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer"
+              className="w-full h-11 text-sm font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white rounded-xl shadow hover:shadow-md transition-all cursor-pointer"
             >
               {loading ? (
                 <>
@@ -201,81 +201,81 @@ export default function LoginPage() {
               ) : (
                 <>
                   <span>Sign In to Workspace</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
                 </>
               )}
             </Button>
           </form>
 
           {/* Demo User Quick Fill Chips */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5">
+          <div className="pt-3.5 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
               <Sparkles className="w-3.5 h-3.5 text-[#00b0ef]" />
               <span>1-Click Test Accounts</span>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => quickFill("admin@vknowlabs.com")}
-                className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs"
+                className="text-left p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                     Madheswaran
                   </span>
-                  <Badge variant="cyan" className="text-[10px] px-1.5 py-0 font-bold">
+                  <Badge variant="cyan" className="text-[9px] px-1 py-0 font-bold shrink-0">
                     Admin
                   </Badge>
                 </div>
-                <div className="text-xs text-slate-500 truncate">admin@vknowlabs.com</div>
+                <div className="text-[10px] text-slate-500 truncate">admin@vknowlabs.com</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => quickFill("sarah.lead@vknowlabs.com")}
-                className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs"
+                className="text-left p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                     Sarah Jenkins
                   </span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
+                  <Badge variant="secondary" className="text-[9px] px-1 py-0 font-bold shrink-0">
                     Lead
                   </Badge>
                 </div>
-                <div className="text-xs text-slate-500 truncate">sarah.lead@vknowlabs.com</div>
+                <div className="text-[10px] text-slate-500 truncate">sarah.lead@vknowlabs.com</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => quickFill("alex.dev@vknowlabs.com")}
-                className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs"
+                className="text-left p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                     Alex Rivera
                   </span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
+                  <Badge variant="secondary" className="text-[9px] px-1 py-0 font-bold shrink-0">
                     PWA Dev
                   </Badge>
                 </div>
-                <div className="text-xs text-slate-500 truncate">alex.dev@vknowlabs.com</div>
+                <div className="text-[10px] text-slate-500 truncate">alex.dev@vknowlabs.com</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => quickFill("rohit.qa@vknowlabs.com")}
-                className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs"
+                className="text-left p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                     Rohit Verma
                   </span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
+                  <Badge variant="secondary" className="text-[9px] px-1 py-0 font-bold shrink-0">
                     QA
                   </Badge>
                 </div>
-                <div className="text-xs text-slate-500 truncate">rohit.qa@vknowlabs.com</div>
+                <div className="text-[10px] text-slate-500 truncate">rohit.qa@vknowlabs.com</div>
               </button>
             </div>
           </div>
