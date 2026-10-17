@@ -60,68 +60,72 @@ export default function LoginPage() {
 
   return (
     <div className="h-screen w-full flex overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      {/* Left Column: Visual Hero Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-slate-900 via-[#0a1e2c] to-slate-900 text-white p-8 xl:p-10 flex-col justify-between overflow-hidden">
+      {/* Left Column: Visual Hero Branding (60% Width Split) */}
+      <div className="hidden lg:flex lg:w-[60%] relative bg-gradient-to-br from-slate-950 via-[#0a1e2c] to-slate-950 text-white p-8 xl:p-12 flex-col justify-between overflow-hidden border-r border-slate-800/80">
         {/* Glow Effects */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-[#00b0ef]/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#007ea8]/20 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#00b0ef]/20 rounded-full blur-3xl -mr-28 -mt-28 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#007ea8]/20 rounded-full blur-3xl -ml-28 -mb-28 pointer-events-none" />
 
+        {/* Top Header */}
         <div className="relative z-10 flex items-center justify-between">
           <VKnowLogo size="md" variant="light" />
-          <Badge variant="cyan" className="font-medium text-xs">
-            Lifecycle v2.0
+          <Badge variant="cyan" className="font-semibold text-xs tracking-wider uppercase px-3 py-1">
+            Enterprise Tracker v2.0
           </Badge>
         </div>
 
-        <div className="relative z-10 my-auto py-2 w-full max-w-xl xl:max-w-2xl mx-auto">
-          <div className="mb-4">
-            <h1 className="text-2xl sm:text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight">
-              Lifecycle Intelligence from <br />
-              <span className="text-[#00b0ef]">Requirement to Release.</span>
+        {/* Center Content: Headline & Sizable Vector Illustration */}
+        <div className="relative z-10 my-auto py-2 w-full max-w-2xl xl:max-w-3xl mx-auto flex flex-col justify-center">
+          <div className="mb-4 text-center lg:text-left">
+            <h1 className="text-3xl sm:text-4xl xl:text-5xl font-black tracking-tight text-white leading-tight">
+              Requirement <span className="text-[#00b0ef]">to Release.</span>
             </h1>
-            <p className="mt-1.5 text-slate-300 text-xs sm:text-sm leading-relaxed">
+            <p className="mt-2 text-slate-300 text-xs sm:text-sm xl:text-base leading-relaxed max-w-xl">
               Real-time work lag calculation, automated weekly rollups, immutable audit trails,
-              and executive reporting for engineering teams.
+              and executive gating for engineering delivery.
             </p>
           </div>
 
-          <div className="bg-slate-900/70 backdrop-blur-md rounded-3xl p-5 sm:p-6 border border-slate-800 shadow-2xl w-full mx-auto">
-            <HeroIllustration className="w-full h-auto max-h-[380px] xl:max-h-[420px]" />
+          {/* Sizable Vector Illustration Container */}
+          <div className="bg-slate-900/70 backdrop-blur-md rounded-3xl p-5 sm:p-6 xl:p-7 border border-slate-800 shadow-2xl w-full mx-auto">
+            <HeroIllustration className="w-full h-auto max-h-[380px] xl:max-h-[430px]" />
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-800/80">
+          {/* Value Props Row */}
+          <div className="grid grid-cols-3 gap-3.5 mt-4 w-full">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
               <div className="flex items-center gap-1.5 text-[#00b0ef] mb-0.5">
                 <CheckCircle2 className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-wider">8 Stages</span>
               </div>
-              <p className="text-xs text-slate-300">Formal sign-offs</p>
+              <p className="text-xs text-slate-300">Formal sign-offs &amp; gating</p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-800/80">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
               <div className="flex items-center gap-1.5 text-amber-400 mb-0.5">
                 <Clock className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-wider">&lt; 2 Mins</span>
               </div>
-              <p className="text-xs text-slate-300">Fast updates</p>
+              <p className="text-xs text-slate-300">Fast weekly update filing</p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-800/80">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-800/50 border border-slate-800/80">
               <div className="flex items-center gap-1.5 text-emerald-400 mb-0.5">
                 <ShieldCheck className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-wider">Audit Log</span>
               </div>
-              <p className="text-xs text-slate-300">Immutable diffs</p>
+              <p className="text-xs text-slate-300">Immutable diffs &amp; history</p>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-3">
+        {/* Footer */}
+        <div className="relative z-10 text-xs text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-3.5">
           <span>&copy; {new Date().getFullYear()} VKnow Labs.</span>
           <span>Timezone: Asia/Kolkata (IST)</span>
         </div>
       </div>
 
-      {/* Right Column: Sign In Form (Fit in viewport) */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 xl:p-12 overflow-y-auto">
+      {/* Right Column: Sign In Form (40% Width Split - Neat & Crisp) */}
+      <div className="w-full lg:w-[40%] flex items-center justify-center p-6 sm:p-10 xl:p-12 overflow-y-auto bg-white dark:bg-slate-950">
         <div className="w-full max-w-md space-y-6 my-auto">
           <div className="text-center lg:text-left">
             <div className="lg:hidden flex justify-center mb-4">
@@ -145,7 +149,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                Email Address
+                Corporate Email Address
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400" />
@@ -155,7 +159,7 @@ export default function LoginPage() {
                   placeholder="name@vknowlabs.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-11 text-sm sm:text-base rounded-xl"
+                  className="pl-10 h-12 text-sm sm:text-base rounded-xl"
                   required
                 />
               </div>
@@ -178,7 +182,7 @@ export default function LoginPage() {
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 h-11 text-sm sm:text-base rounded-xl"
+                  className="pl-10 h-12 text-sm sm:text-base rounded-xl"
                   required
                 />
               </div>
@@ -187,16 +191,16 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 text-base font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white rounded-xl shadow hover:shadow-md transition-all cursor-pointer"
+              className="w-full h-12 text-base font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer"
             >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  <span>Signing in...</span>
                 </>
               ) : (
                 <>
-                  Sign In to Workspace
+                  <span>Sign In to Workspace</span>
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
@@ -213,13 +217,13 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => quickFill("admin@vknowlabs.com")}
-                className="text-left p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors cursor-pointer"
+                className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Madheswaran
                   </span>
-                  <Badge variant="cyan" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="cyan" className="text-[10px] px-1.5 py-0 font-bold">
                     Admin
                   </Badge>
                 </div>
@@ -229,13 +233,13 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => quickFill("sarah.lead@vknowlabs.com")}
-                className="text-left p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors cursor-pointer"
+                className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Sarah Jenkins
                   </span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
                     Lead
                   </Badge>
                 </div>
@@ -245,13 +249,13 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => quickFill("alex.dev@vknowlabs.com")}
-                className="text-left p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors cursor-pointer"
+                className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Alex Rivera
                   </span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
                     PWA Dev
                   </Badge>
                 </div>
@@ -261,13 +265,13 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => quickFill("rohit.qa@vknowlabs.com")}
-                className="text-left p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-white dark:bg-slate-900 transition-colors cursor-pointer"
+                className="text-left p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#00b0ef] dark:hover:border-[#00b0ef] bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800/80 transition-all cursor-pointer shadow-xs"
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                     Rohit Verma
                   </span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
                     QA
                   </Badge>
                 </div>
