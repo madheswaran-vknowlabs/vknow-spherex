@@ -497,152 +497,125 @@ export default function ProjectDetailPage({
 
   return (
     <div className="space-y-4">
-      {/* Top Breadcrumb & Project Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
-        <div className="flex items-start gap-3">
+      {/* Unified Single-Row Project Title & KPI Metrics Banner */}
+      <div className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        {/* Left: Back Arrow + Project Code & Title + Status + Completion */}
+        <div className="flex items-center gap-2.5 min-w-0">
           <Link
             href="/projects"
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mt-0.5"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
             title="Back to Portfolio"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2 py-0.5 rounded-md">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-mono font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2 py-0.5 rounded-md shrink-0">
                 {project.code}
               </span>
-              <span className="text-xs font-semibold text-slate-500">{project.client}</span>
-              <Badge variant={healthBadge as any} className="text-[10px] font-bold uppercase">
+              <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white truncate">
+                {project.name}
+              </h1>
+              <Badge variant={healthBadge as any} className="text-[10px] font-bold uppercase shrink-0">
                 {project.health} &bull; {project.lagInDays > 0 ? `+${project.lagInDays}d Lag` : "On Track"}
               </Badge>
+              <span className="text-xs font-mono font-extrabold text-[#00b0ef] bg-[#e0f6fd]/70 dark:bg-[#00b0ef]/15 px-2 py-0.5 rounded-md shrink-0">
+                {project.progress || 0}% Complete
+              </span>
             </div>
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">
-              {project.name}
-            </h1>
-            <p className="text-xs text-slate-500 max-w-xl">{project.description}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRecalculate}
-            disabled={isRecalculating}
-            className="h-8 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300"
-            title="Sync all task lags, check dependency cascades, and recompute stage & project health"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isRecalculating ? "animate-spin text-[#00b0ef]" : "text-slate-400"}`} />
-            <span>{isRecalculating ? "Syncing..." : "Sync Tracking"}</span>
-          </Button>
+        {/* Right: The 3 KPI Metrics + Quick Actions in the SAME SINGLE ROW */}
+        <div className="flex items-center gap-2 flex-wrap xl:flex-nowrap shrink-0">
+          {/* KPI 1: Schedule & Lag Health */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs">
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+              project.health === "Red"
+                ? "bg-red-100 text-red-600 dark:bg-red-950/60"
+                : project.health === "Amber"
+                ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60"
+                : "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60"
+            }`}>
+              <Clock className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block leading-none">Schedule &amp; Lag</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                {project.lagInDays > 0 ? `+${project.lagInDays}d Lag` : "On Schedule"}
+              </span>
+            </div>
+          </div>
 
-          <Button
-            size="sm"
-            onClick={() => {
-              setRaiseDiscrepancyDefaultTaskId("");
-              setRaiseDiscrepancyDefaultStageId(currentSelectedStage._id);
-              setIsRaiseDiscrepancyOpen(true);
-            }}
-            className="h-8 px-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
-            <span>Log Discrepancy</span>
-          </Button>
+          {/* KPI 2: Effort Variance (Est. vs Logged) */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs">
+            <div className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center shrink-0">
+              <TrendingDown className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block leading-none">Effort Variance</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                {totalLoggedHours}h / {totalEstHours}h{" "}
+                <span className={`text-[11px] font-semibold ${isOverBudget ? "text-rose-600" : "text-emerald-600"}`}>
+                  ({effortVariancePercent > 0 ? `+${effortVariancePercent}%` : `${effortVariancePercent}%`})
+                </span>
+              </span>
+            </div>
+          </div>
 
-          {isAdmin && (
+          {/* KPI 3: Blockers & Risk Cascade */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-xs">
+            <div className="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block leading-none">Blockers &amp; Risk</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                {openDiscrepancies.length} Open Issues
+              </span>
+            </div>
+          </div>
+
+          {/* Action Buttons: Sync, Discrepancy, Edit */}
+          <div className="flex items-center gap-1.5 pl-1">
             <Button
               variant="outline"
               size="sm"
-              onClick={openEditProject}
-              className="h-8 px-3 text-xs font-semibold"
+              onClick={handleRecalculate}
+              disabled={isRecalculating}
+              className="h-8 px-2 text-xs font-semibold text-slate-700 dark:text-slate-300 rounded-xl"
+              title="Sync Tracking"
             >
-              <Edit className="w-3.5 h-3.5 mr-1.5" />
-              <span>Edit Details</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRecalculating ? "animate-spin text-[#00b0ef]" : "text-slate-400"}`} />
+              <span className="hidden sm:inline ml-1">{isRecalculating ? "Syncing..." : "Sync"}</span>
             </Button>
-          )}
 
-          <div className="text-right pl-3 border-l border-slate-200 dark:border-slate-800">
-            <div className="text-[10px] uppercase font-bold text-slate-400">Completion</div>
-            <div className="text-lg font-black text-[#00b0ef]">{project.progress || 0}%</div>
-          </div>
-        </div>
-      </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setRaiseDiscrepancyDefaultTaskId("");
+                setRaiseDiscrepancyDefaultStageId(currentSelectedStage._id);
+                setIsRaiseDiscrepancyOpen(true);
+              }}
+              className="h-8 px-2 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl"
+              title="Log Discrepancy"
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline ml-1">Discrepancy</span>
+            </Button>
 
-      {/* Tracking & Effort Variance Strip (Section 5.2 & 5.1) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Health & Lag */}
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Schedule &amp; Lag Health
-            </span>
-            <div className="flex items-center gap-2">
-              <span className={`text-base font-black ${project.health === "Red" ? "text-red-600" : project.health === "Amber" ? "text-amber-600" : "text-emerald-600"}`}>
-                {project.health} Health
-              </span>
-              <span className="text-xs text-slate-500 font-medium">
-                {project.lagInDays > 0 ? `+${project.lagInDays} Days Lag` : "0 Days (On Time)"}
-              </span>
-            </div>
-            <span className="text-[10px] text-slate-400 block">
-              Due: {format(new Date(project.plannedEndDate), "dd MMM yyyy")}
-            </span>
-          </div>
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${project.health === "Red" ? "bg-red-50 text-red-600 dark:bg-red-950/40" : project.health === "Amber" ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40"}`}>
-            <Clock className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* Effort Variance */}
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Effort Variance (Est. vs Logged)
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-black text-slate-900 dark:text-slate-100">
-                {totalLoggedHours}h / {totalEstHours}h
-              </span>
-              <span className={`text-xs font-bold ${isOverBudget ? "text-rose-600" : "text-emerald-600"}`}>
-                {effortVarianceHours > 0 ? `+${effortVarianceHours}h` : `${effortVarianceHours}h`} ({effortVariancePercent > 0 ? `+${effortVariancePercent}%` : `${effortVariancePercent}%`})
-              </span>
-            </div>
-            <span className="text-[10px] text-slate-400 block">
-              Status: <strong className={isOverBudget ? "text-rose-600" : "text-emerald-600"}>{isOverBudget ? "Over Baseline Budget" : "Within Baseline Budget"}</strong>
-            </span>
-          </div>
-          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center">
-            <TrendingDown className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* Discrepancies & Risks */}
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Blockers &amp; Risk Cascade
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-black text-slate-900 dark:text-slate-100">
-                {openDiscrepancies.length} Open Issues
-              </span>
-              {criticalDiscrepancies.length > 0 && (
-                <Badge variant="destructive" className="text-[9px] px-1.5 py-0 font-bold uppercase">
-                  {criticalDiscrepancies.length} Critical
-                </Badge>
-              )}
-            </div>
-            <span className="text-[10px] text-slate-400 block">
-              {atRiskTasksCount > 0 ? (
-                <span className="text-amber-600 font-semibold">{atRiskTasksCount} task(s) At Risk from predecessor slips</span>
-              ) : (
-                "0 tasks at risk from predecessor slips"
-              )}
-            </span>
-          </div>
-          <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
-            <AlertTriangle className="w-4 h-4" />
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openEditProject}
+                className="h-8 px-2 text-xs font-semibold rounded-xl"
+                title="Edit Details"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline ml-1">Edit</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -790,451 +763,452 @@ export default function ProjectDetailPage({
             </div>
           </div>
 
-      {/* Selected Stage Control Cockpit */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left Column: Stage Detail & Sign-Off Actions */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3.5">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-[10px] font-mono uppercase font-bold text-[#00b0ef]">
-                Stage {currentSelectedStage.order} Config
+      {/* Stage Deliverables & Tasks (Full Width with Integrated Stage Controls & Admin Sign-Off) */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        {/* Integrated Stage Header & Controls */}
+        <div className="pb-4 border-b border-slate-100 dark:border-slate-800 space-y-3">
+          {/* Top Row: Title, Stage Badge, Approval Pill, and Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+              <span className="font-mono text-xs font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2.5 py-1 rounded-lg shrink-0">
+                Stage #{currentSelectedStage.order}
               </span>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate">
                 {currentSelectedStage.name}
               </h3>
-            </div>
-
-            <Badge
-              variant={
-                currentSelectedStage.status === "Approved"
-                  ? "green"
-                  : currentSelectedStage.status === "Completed"
-                  ? "cyan"
-                  : currentSelectedStage.status === "Blocked"
-                  ? "red"
-                  : "secondary"
-              }
-              className="text-[10px] font-bold uppercase"
-            >
-              {currentSelectedStage.status}
-            </Badge>
-          </div>
-
-          {/* Sign-off banner if approved */}
-          {currentSelectedStage.signOff?.approvedAt && (
-            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
-                <CheckCircle className="w-3.5 h-3.5" />
-                <span>Admin Sign-Off Approved</span>
-              </div>
-              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                &quot;{currentSelectedStage.signOff.remarks}&quot;
-              </p>
-              <div className="text-[10px] text-emerald-600 mt-1">
-                Approved by {currentSelectedStage.signOff.approvedBy?.name || "Admin"} on{" "}
-                {format(new Date(currentSelectedStage.signOff.approvedAt), "MMM dd, yyyy")}
-              </div>
-            </div>
-          )}
-
-          {/* Quick status selector */}
-          <div className="space-y-1">
-            <Label className="text-xs">Stage Status</Label>
-            <CoolDropdown
-              fullWidth
-              size="sm"
-              value={currentSelectedStage.status}
-              onChange={(val) => handleUpdateStage({ status: val })}
-              options={[
-                { value: "Not Started", label: "Not Started", badge: "0%" },
-                { value: "In Progress", label: "In Progress", badge: "Active", badgeVariant: "cyan" },
-                { value: "On Hold", label: "On Hold", badge: "Paused", badgeVariant: "amber" },
-                { value: "Blocked", label: "Blocked", badge: "Critical", badgeVariant: "rose" },
-                { value: "Completed", label: "Completed (Ready for Sign-Off)", badge: "Review", badgeVariant: "emerald" },
-                ...(currentSelectedStage.status === "Approved"
-                  ? [{ value: "Approved", label: "Approved (Signed Off)", badge: "Locked", badgeVariant: "emerald" as const }]
-                  : []),
-              ]}
-            />
-          </div>
-
-          {/* Progress Slider */}
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs font-semibold">
-              <Label className="text-xs">Progress</Label>
-              <span className="text-[#00b0ef]">{currentSelectedStage.percentComplete}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={currentSelectedStage.percentComplete}
-              onChange={(e) => handleUpdateStage({ percentComplete: Number(e.target.value) })}
-              className="w-full accent-[#00b0ef]"
-            />
-          </div>
-
-          {/* Stage Owner */}
-          <div className="space-y-1">
-            <Label className="text-xs">Stage Owner</Label>
-            <CoolDropdown
-              fullWidth
-              size="sm"
-              searchable
-              value={currentSelectedStage.ownerId?._id || ""}
-              onChange={(val) => handleUpdateStage({ ownerId: val || null })}
-              placeholder="-- Unassigned --"
-              options={[
-                { value: "", label: "-- Unassigned --" },
-                ...activeUsers.map((u) => ({
-                  value: u._id,
-                  label: u.name,
-                  sublabel: u.department || u.role,
-                  badge: u.role?.toUpperCase(),
-                })),
-              ]}
-            />
-          </div>
-
-          {/* Planned Dates */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <span className="text-slate-400 text-[10px] uppercase font-bold block">
-                Planned Start
-              </span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {format(new Date(currentSelectedStage.plannedStartDate), "MMM dd, yyyy")}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 text-[10px] uppercase font-bold block">
-                Planned End
-              </span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {format(new Date(currentSelectedStage.plannedEndDate), "MMM dd, yyyy")}
-              </span>
-            </div>
-          </div>
-
-          {/* Admin Sign-Off Gate Button */}
-          {isAdmin && (
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                size="sm"
-                onClick={() => setIsSignOffModalOpen(true)}
-                className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
+              <Badge
+                variant={
+                  currentSelectedStage.status === "Approved"
+                    ? "green"
+                    : currentSelectedStage.status === "Completed"
+                    ? "cyan"
+                    : currentSelectedStage.status === "Blocked"
+                    ? "red"
+                    : "secondary"
+                }
+                className="text-xs font-bold uppercase px-2 py-0.5 shrink-0"
               >
-                <ShieldCheck className="w-4 h-4 mr-1.5" />
-                <span>
-                  {currentSelectedStage.status === "Approved"
-                    ? "Update Sign-Off Remarks"
-                    : "Stage Sign-Off Review"}
-                </span>
-              </Button>
+                {currentSelectedStage.status}
+              </Badge>
+              <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5 shrink-0">
+                {stageTasks.length} {stageTasks.length === 1 ? "Deliverable" : "Deliverables"}
+              </Badge>
             </div>
-          )}
-        </div>
 
-        {/* Right 2 Columns: Tasks under this Stage */}
-        <div className="lg:col-span-2 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>Stage Deliverables &amp; Tasks</span>
-                  <Badge variant="cyan" className="text-[10px] px-1.5 py-0 font-mono">
-                    {stageTasks.length} Tasks
-                  </Badge>
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Tasks with dependency tracking and automatic at-risk flags
-                </p>
-              </div>
+            {/* Right: Sign-off approval status or review button + Detailed task button */}
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {currentSelectedStage.signOff?.approvedAt ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="text-left">
+                    <span className="font-bold text-emerald-800 dark:text-emerald-300 block leading-tight text-xs">
+                      Sign-Off Approved
+                    </span>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block truncate max-w-[220px]" title={currentSelectedStage.signOff.remarks}>
+                      &quot;{currentSelectedStage.signOff.remarks}&quot;
+                    </span>
+                  </div>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsSignOffModalOpen(true)}
+                      className="h-7 px-2 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                    >
+                      Update
+                    </Button>
+                  )}
+                </div>
+              ) : isAdmin ? (
+                <Button
+                  size="sm"
+                  onClick={() => setIsSignOffModalOpen(true)}
+                  className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                >
+                  <ShieldCheck className="w-4 h-4 mr-1.5" />
+                  <span>Stage Sign-Off Review</span>
+                </Button>
+              ) : (
+                <span className="text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl">
+                  Sign-Off Pending
+                </span>
+              )}
 
+              {/* Detailed Task Button */}
               <Button
                 size="sm"
                 onClick={() => setIsTaskModalOpen(true)}
-                className="bg-[#00b0ef] hover:bg-[#009ad4] text-white h-8 px-3 text-xs font-bold rounded-xl"
+                className="bg-[#00b0ef] hover:bg-[#009ad4] text-white h-9 px-3.5 text-xs font-bold rounded-xl shadow-xs shrink-0"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
+                <Plus className="w-4 h-4 mr-1" />
                 <span>+ Detailed Task</span>
               </Button>
             </div>
+          </div>
 
-            {/* Clockify-Style Quick Time Tracker & Add Task Bar */}
-            <div className="my-3 p-3 sm:p-3.5 rounded-2xl bg-[#f8fafc] dark:bg-slate-950/60 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2.5">
-              <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-200/60 dark:border-slate-800/80">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 text-xs">
-                    <Clock className="w-3.5 h-3.5 text-[#00b0ef]" />
-                    <span>Quick Time Tracker (Clockify Style)</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 hidden sm:inline">
-                    &bull; Type deliverable, set hours, and add instantly
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  <span className="text-slate-400">Target Stage:</span>
-                  <span className="font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2 py-0.5 rounded-md">
-                    #{currentSelectedStage.order} {currentSelectedStage.name}
-                  </span>
-                </div>
-              </div>
-
-              <form onSubmit={handleQuickAddAndLogTask} className="space-y-2">
-                {/* Row 1: Broad task input + Add & Log button */}
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      placeholder="What did you work on? (e.g. Design UI components in Figma, build authentication...)"
-                      value={quickTitle}
-                      onChange={(e) => setQuickTitle(e.target.value)}
-                      className="h-10 text-xs sm:text-sm rounded-xl font-medium pl-3 pr-24 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs placeholder:text-slate-400"
-                      required
-                    />
-                    <div className="absolute right-2 top-2 flex items-center gap-1">
-                      <span className="text-[10px] font-mono font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2 py-0.5 rounded-md">
-                        {quickHours}h Log
-                      </span>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={quickSubmitting}
-                    className="h-10 px-4 text-xs font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white shadow-xs rounded-xl shrink-0 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    {quickSubmitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Plus className="w-4 h-4 stroke-[2.5]" />
-                    )}
-                    <span>+ Add &amp; Log</span>
-                  </Button>
-                </div>
-
-                {/* Row 2: Time interval controls, Presets & Assignee */}
-                <div className="flex items-center justify-between gap-2 flex-wrap text-xs pt-0.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] text-slate-500 font-medium">Time Interval:</span>
-                    <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-                      <span className="text-[10px] text-slate-400">From</span>
-                      <input
-                        type="time"
-                        value={quickStartTime}
-                        onChange={(e) => handleQuickStartTimeChange(e.target.value)}
-                        className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden w-[72px]"
-                      />
-                      <span className="text-[10px] text-slate-400">To</span>
-                      <input
-                        type="time"
-                        value={quickEndTime}
-                        onChange={(e) => handleQuickEndTimeChange(e.target.value)}
-                        className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden w-[72px]"
-                      />
-                    </div>
-
-                    {/* Presets */}
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {[
-                        { label: "10am-12pm (2h)", start: "10:00", end: "12:00", hours: 2 },
-                        { label: "2pm-5pm (3h)", start: "14:00", end: "17:00", hours: 3 },
-                        { label: "9:30am-1:30pm (4h)", start: "09:30", end: "13:30", hours: 4 },
-                      ].map((p) => (
-                        <button
-                          key={p.label}
-                          type="button"
-                          onClick={() => {
-                            setQuickStartTime(p.start);
-                            setQuickEndTime(p.end);
-                            setQuickHours(p.hours);
-                          }}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer border ${
-                            quickStartTime === p.start && quickEndTime === p.end
-                              ? "bg-[#00b0ef] text-white border-[#00b0ef]"
-                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#00b0ef]"
-                          }`}
-                        >
-                          {p.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Assignee select */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-400">Assignee:</span>
-                    <select
-                      value={quickAssignee}
-                      onChange={(e) => setQuickAssignee(e.target.value)}
-                      className="h-8 px-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 max-w-[140px] truncate shadow-2xs"
-                    >
-                      <option value={(session?.user as any)?.id || ""}>Me ({session?.user?.name || "Assignee"})</option>
-                      <option value="">-- Unassigned --</option>
-                      {activeUsers.map((u) => (
-                        <option key={u._id} value={u._id}>
-                          {u.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </form>
+          {/* Bottom Row: Metadata & Quick Controls Strip */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1 text-xs">
+            {/* Planned Dates */}
+            <div className="flex items-center gap-2 text-slate-500 font-medium shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>
+                Planned: <strong className="text-slate-800 dark:text-slate-200">{format(new Date(currentSelectedStage.plannedStartDate), "dd MMM yyyy")}</strong> &ndash; <strong className="text-slate-800 dark:text-slate-200">{format(new Date(currentSelectedStage.plannedEndDate), "dd MMM yyyy")}</strong>
+              </span>
             </div>
 
-            {/* Tasks List */}
-            {stageTasks.length === 0 ? (
-              <div className="py-10 text-center text-slate-400">
-                <CheckCircle className="w-8 h-8 text-slate-300 mx-auto mb-1.5" />
-                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  No tasks assigned to this stage yet
+            {/* Stage Owner Dropdown + Stage Status Selector + Progress Slider */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Stage Owner */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400 font-semibold">Owner:</span>
+                <div className="w-44">
+                  <CoolDropdown
+                    fullWidth
+                    size="sm"
+                    searchable
+                    value={currentSelectedStage.ownerId?._id || ""}
+                    onChange={(val) => handleUpdateStage({ ownerId: val || null })}
+                    placeholder="Stage Owner"
+                    options={[
+                      { value: "", label: "-- Unassigned --" },
+                      ...activeUsers.map((u) => ({
+                        value: u._id,
+                        label: u.name,
+                        sublabel: u.department || u.role,
+                        badge: u.role?.toUpperCase(),
+                      })),
+                    ]}
+                  />
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Click &quot;Add Task&quot; above to create granular deliverables for this stage.
-                </p>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800 mt-2">
-                {stageTasks.map((t: any) => {
-                  const isDone = t.status === "Completed";
-                  return (
-                    <div
-                      key={t._id}
-                      className="py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 px-2 rounded-xl transition-colors"
-                    >
-                      <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                        {/* Status cycle button */}
-                        <button
-                          onClick={() => handleCycleTaskStatus(t)}
-                          title="Click to advance status"
-                          className={`mt-0.5 w-4 h-4 rounded-md border flex items-center justify-center text-[9px] shrink-0 transition-colors ${
-                            isDone
-                              ? "bg-emerald-500 border-emerald-500 text-white"
-                              : t.status === "In Progress"
-                              ? "border-[#00b0ef] text-[#00b0ef]"
-                              : "border-slate-300 dark:border-slate-600"
-                          }`}
-                        >
-                          {isDone && <Check className="w-3 h-3 stroke-[3]" />}
-                        </button>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-xs font-bold truncate ${
-                                isDone ? "line-through text-slate-400" : "text-slate-900 dark:text-white"
-                              }`}
-                            >
-                              {t.title}
-                            </span>
+              {/* Stage Status Selector */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400 font-semibold">Status:</span>
+                <div className="w-40">
+                  <CoolDropdown
+                    fullWidth
+                    size="sm"
+                    value={currentSelectedStage.status}
+                    onChange={(val) => handleUpdateStage({ status: val })}
+                    options={[
+                      { value: "Not Started", label: "Not Started", badge: "0%" },
+                      { value: "In Progress", label: "In Progress", badge: "Active", badgeVariant: "cyan" },
+                      { value: "On Hold", label: "On Hold", badge: "Paused", badgeVariant: "amber" },
+                      { value: "Blocked", label: "Blocked", badge: "Critical", badgeVariant: "rose" },
+                      { value: "Completed", label: "Completed (Review)", badge: "Sign-Off", badgeVariant: "emerald" },
+                      ...(currentSelectedStage.status === "Approved"
+                        ? [{ value: "Approved", label: "Approved", badge: "Locked", badgeVariant: "emerald" as const }]
+                        : []),
+                    ]}
+                  />
+                </div>
+              </div>
 
-                            {t.isAtRisk && (
-                              <Badge variant="amber" className="text-[9px] px-1 py-0 font-bold shrink-0">
-                                At Risk
-                              </Badge>
-                            )}
+              {/* Progress Slider (Interactive) */}
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-xs font-semibold text-slate-500">Progress</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={currentSelectedStage.percentComplete}
+                  onChange={(e) => handleUpdateStage({ percentComplete: Number(e.target.value) })}
+                  className="w-20 accent-[#00b0ef] cursor-pointer"
+                  title={`Stage progress: ${currentSelectedStage.percentComplete}%`}
+                />
+                <span className="text-xs font-bold font-mono text-[#00b0ef] min-w-[32px]">
+                  {currentSelectedStage.percentComplete}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                            {t.lagInDays > 0 && (
-                              <Badge
-                                variant={t.health === "Red" ? "destructive" : "amber"}
-                                className="text-[9px] px-1 py-0 font-bold shrink-0"
-                              >
-                                +{t.lagInDays}d Lag
-                              </Badge>
-                            )}
+        {/* Clean & Spacious Quick Time Tracker (Clockify Style) */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+          {/* Tracker Subheader */}
+          <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-200/70 dark:border-slate-800/80">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#00b0ef]" />
+              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                Quick Time Tracker (Clockify Style)
+              </span>
+              <span className="text-xs text-slate-400 font-normal hidden md:inline">
+                &bull; Log your deliverable and hours instantly to #{currentSelectedStage.order} {currentSelectedStage.name}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-slate-400">Target Stage:</span>
+              <span className="font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2.5 py-0.5 rounded-lg text-xs">
+                #{currentSelectedStage.order} {currentSelectedStage.name}
+              </span>
+            </div>
+          </div>
 
-                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-medium">
-                              {t.priority}
+          <form onSubmit={handleQuickAddAndLogTask} className="space-y-3">
+            {/* Row 1: Clockify Primary Input Bar */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
+              {/* Task Title Input */}
+              <div className="relative flex-1">
+                <Input
+                  placeholder="What did you work on? (e.g. Design UI components in Figma, build authentication, write test specs...)"
+                  value={quickTitle}
+                  onChange={(e) => setQuickTitle(e.target.value)}
+                  className="h-11 text-sm font-medium rounded-xl pl-3.5 pr-24 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs placeholder:text-slate-400 focus:ring-2 focus:ring-[#00b0ef]"
+                  required
+                />
+                <div className="absolute right-2.5 top-2.5 flex items-center">
+                  <span className="text-xs font-mono font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2.5 py-1 rounded-lg">
+                    {quickHours}h Log
+                  </span>
+                </div>
+              </div>
+
+              {/* Time Interval Selector (From - To) */}
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3.5 h-11 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
+                <span className="text-xs font-semibold text-slate-400">From</span>
+                <input
+                  type="time"
+                  value={quickStartTime}
+                  onChange={(e) => handleQuickStartTimeChange(e.target.value)}
+                  className="bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden w-[80px] cursor-pointer"
+                />
+                <span className="text-slate-300 dark:text-slate-600">&ndash;</span>
+                <span className="text-xs font-semibold text-slate-400">To</span>
+                <input
+                  type="time"
+                  value={quickEndTime}
+                  onChange={(e) => handleQuickEndTimeChange(e.target.value)}
+                  className="bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden w-[80px] cursor-pointer"
+                />
+              </div>
+
+              {/* Assignee Selector */}
+              <div className="shrink-0">
+                <select
+                  value={quickAssignee}
+                  onChange={(e) => setQuickAssignee(e.target.value)}
+                  className="h-11 px-3 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs min-w-[150px] cursor-pointer"
+                >
+                  <option value={(session?.user as any)?.id || ""}>Me ({session?.user?.name || "Assignee"})</option>
+                  <option value="">-- Unassigned --</option>
+                  {activeUsers.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Add & Log CTA Button */}
+              <Button
+                type="submit"
+                disabled={quickSubmitting}
+                className="h-11 px-5 text-sm font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white shadow-xs rounded-xl shrink-0 flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                {quickSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                )}
+                <span>+ Add &amp; Log Work</span>
+              </Button>
+            </div>
+
+            {/* Row 2: Clockify Quick Interval Presets */}
+            <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5 text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-slate-500 font-medium">Quick Presets:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { label: "10:00 AM – 12:00 PM (2h)", start: "10:00", end: "12:00", hours: 2 },
+                    { label: "02:00 PM – 05:00 PM (3h)", start: "14:00", end: "17:00", hours: 3 },
+                    { label: "09:30 AM – 01:30 PM (4h)", start: "09:30", end: "13:30", hours: 4 },
+                    { label: "09:00 AM – 05:00 PM (8h Full Day)", start: "09:00", end: "17:00", hours: 8 },
+                  ].map((p) => {
+                    const isActive = quickStartTime === p.start && quickEndTime === p.end;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => {
+                          setQuickStartTime(p.start);
+                          setQuickEndTime(p.end);
+                          setQuickHours(p.hours);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                          isActive
+                            ? "bg-[#00b0ef] text-white border-[#00b0ef] shadow-xs"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[#00b0ef] hover:text-[#00b0ef]"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <span className="text-xs text-slate-400 hidden lg:inline">
+                Creates deliverable task &amp; logs duration simultaneously with zero extra clicks
+              </span>
+            </div>
+          </form>
+        </div>
+
+        {/* Stage Deliverables Tasks List */}
+        <div>
+          {stageTasks.length === 0 ? (
+            <div className="py-12 text-center text-slate-400">
+              <CheckCircle className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
+              <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                No deliverables added to this stage yet
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                Use the Quick Time Tracker above to instantly add tasks and log hours, or click &quot;+ Detailed Task&quot; for complete custom configurations.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 mt-1">
+              {stageTasks.map((t: any) => {
+                const isDone = t.status === "Completed";
+                return (
+                  <div
+                    key={t._id}
+                    className="py-3 flex items-start sm:items-center justify-between gap-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 px-3 rounded-xl transition-colors"
+                  >
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      {/* Status cycle checkbox button */}
+                      <button
+                        onClick={() => handleCycleTaskStatus(t)}
+                        title="Click to advance status"
+                        className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center text-xs shrink-0 transition-colors cursor-pointer ${
+                          isDone
+                            ? "bg-emerald-500 border-emerald-500 text-white"
+                            : t.status === "In Progress"
+                            ? "border-[#00b0ef] text-[#00b0ef]"
+                            : "border-slate-300 dark:border-slate-600 hover:border-[#00b0ef]"
+                        }`}
+                      >
+                        {isDone && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`text-sm font-bold truncate ${
+                              isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"
+                            }`}
+                          >
+                            {t.title}
+                          </span>
+
+                          {t.isAtRisk && (
+                            <Badge variant="amber" className="text-xs px-2 py-0.5 font-bold shrink-0">
+                              At Risk
                             </Badge>
-                          </div>
-
-                          <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
-                            <span>
-                              Assignee: <strong>{t.assigneeId?.name || "Unassigned"}</strong>
-                            </span>
-                            <span>&bull;</span>
-                            <span>
-                              Est: <strong>{t.estimatedHours}h</strong> (Logged: {t.loggedHours}h
-                              {t.loggedHours > t.estimatedHours && (
-                                <span className="text-rose-600 font-bold ml-1">
-                                  +{Math.round((t.loggedHours - t.estimatedHours) * 10) / 10}h over
-                                </span>
-                              )}
-                              )
-                            </span>
-                            {t.blockedBy?.length > 0 && (
-                              <>
-                                <span>&bull;</span>
-                                <span className="text-amber-600 dark:text-amber-400">
-                                  Blocked by {t.blockedBy.length} task(s)
-                                </span>
-                              </>
-                            )}
-                          </div>
-
-                          {t.description && (
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                              {t.description}
-                            </p>
                           )}
 
-                          {t.workLogs && t.workLogs.length > 0 && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1 bg-[#e0f6fd]/50 dark:bg-[#00b0ef]/10 px-2 py-1 rounded-lg border border-[#00b0ef]/20">
-                              <Clock className="w-3 h-3 text-[#00b0ef] shrink-0" />
-                              <span className="truncate">
-                                Latest Log: <strong>{t.workLogs[t.workLogs.length - 1].startTime || "Logged"} – {t.workLogs[t.workLogs.length - 1].endTime || ""}</strong> ({t.workLogs[t.workLogs.length - 1].hours}h): &quot;{t.workLogs[t.workLogs.length - 1].notes}&quot;
+                          {t.lagInDays > 0 && (
+                            <Badge
+                              variant={t.health === "Red" ? "destructive" : "amber"}
+                              className="text-xs px-2 py-0.5 font-bold shrink-0"
+                            >
+                              +{t.lagInDays}d Lag
+                            </Badge>
+                          )}
+
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5 font-semibold">
+                            {t.priority}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap">
+                          <span>
+                            Assignee: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{t.assigneeId?.name || "Unassigned"}</strong>
+                          </span>
+                          <span>&bull;</span>
+                          <span>
+                            Effort: <strong>{t.loggedHours}h</strong> logged / <strong>{t.estimatedHours}h</strong> est
+                            {t.loggedHours > t.estimatedHours && (
+                              <span className="text-rose-600 font-bold ml-1.5">
+                                (+{Math.round((t.loggedHours - t.estimatedHours) * 10) / 10}h over)
                               </span>
-                            </div>
+                            )}
+                          </span>
+                          {t.blockedBy?.length > 0 && (
+                            <>
+                              <span>&bull;</span>
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                                Blocked by {t.blockedBy.length} task(s)
+                              </span>
+                            </>
                           )}
                         </div>
-                      </div>
 
-                      {/* Right Task Progress & Status Badge */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        {/* Log Work Button */}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setSelectedTaskForLogWork(t)}
-                          className="h-7 px-2.5 text-[11px] font-semibold rounded-lg text-slate-700 dark:text-slate-300 hover:text-[#00b0ef] hover:border-[#00b0ef] transition-colors"
-                          title="Log working hours (e.g. 10am to 12pm) and update progress"
-                        >
-                          <Clock className="w-3 h-3 mr-1 text-[#00b0ef]" />
-                          <span>Log Work</span>
-                        </Button>
+                        {t.description && (
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                            {t.description}
+                          </p>
+                        )}
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRaiseDiscrepancyDefaultTaskId(t._id);
-                            setRaiseDiscrepancyDefaultStageId(currentSelectedStage._id);
-                            setIsRaiseDiscrepancyOpen(true);
-                          }}
-                          title="Log blocker or discrepancy against this deliverable"
-                          className="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
-                        >
-                          <AlertTriangle className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          onClick={() => handleCycleTaskStatus(t)}
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            t.status === "Completed"
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
-                              : t.status === "In Progress"
-                              ? "bg-sky-50 text-[#00b0ef] dark:bg-sky-950/60"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-600"
-                          }`}
-                        >
-                          {t.status}
-                        </button>
+                        {t.workLogs && t.workLogs.length > 0 && (
+                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-1.5 bg-[#e0f6fd]/50 dark:bg-[#00b0ef]/10 px-2.5 py-1.5 rounded-xl border border-[#00b0ef]/20">
+                            <Clock className="w-3.5 h-3.5 text-[#00b0ef] shrink-0" />
+                            <span className="truncate">
+                              Latest Log: <strong className="text-slate-800 dark:text-slate-200">{t.workLogs[t.workLogs.length - 1].startTime || "Logged"} &ndash; {t.workLogs[t.workLogs.length - 1].endTime || ""}</strong> ({t.workLogs[t.workLogs.length - 1].hours}h): &quot;{t.workLogs[t.workLogs.length - 1].notes}&quot;
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+
+                    {/* Right Task Progress & Status Actions */}
+                    <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                      {/* Log Work Button */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedTaskForLogWork(t)}
+                        className="h-8 px-3 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-300 hover:text-[#00b0ef] hover:border-[#00b0ef] transition-colors"
+                        title="Log working hours (e.g. 10am to 12pm) and update progress"
+                      >
+                        <Clock className="w-3.5 h-3.5 mr-1.5 text-[#00b0ef]" />
+                        <span>Log Work</span>
+                      </Button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRaiseDiscrepancyDefaultTaskId(t._id);
+                          setRaiseDiscrepancyDefaultStageId(currentSelectedStage._id);
+                          setIsRaiseDiscrepancyOpen(true);
+                        }}
+                        title="Log blocker or discrepancy against this deliverable"
+                        className="p-1.5 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                      >
+                        <AlertTriangle className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handleCycleTaskStatus(t)}
+                        className={`px-2.5 py-1 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
+                          t.status === "Completed"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 hover:bg-emerald-100"
+                            : t.status === "In Progress"
+                            ? "bg-sky-50 text-[#00b0ef] dark:bg-sky-950/60 hover:bg-sky-100"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                        }`}
+                      >
+                        {t.status}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
         </>
