@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TypeSelect } from "@/components/ui/type-select";
 import { RaiseDiscrepancyModal } from "@/components/discrepancies/RaiseDiscrepancyModal";
 import { ResolveDiscrepancyModal } from "@/components/discrepancies/ResolveDiscrepancyModal";
 import { formatDistanceToNow, format } from "date-fns";
@@ -249,51 +250,51 @@ export default function DiscrepanciesPage() {
         </div>
 
         {/* Dropdowns Row: Project, Severity, Type */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
-          <div>
-            <select
-              value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-              className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#00b0ef]"
-            >
-              <option value="ALL">All Projects</option>
-              {projectsData?.map((p: any) => (
-                <option key={p._id} value={p._id}>
-                  [{p.code}] {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          <TypeSelect
+            size="sm"
+            value={projectFilter}
+            onChange={(val) => setProjectFilter(val)}
+            placeholder="All Projects"
+            options={[
+              { value: "ALL", label: "All Projects" },
+              ...(projectsData?.map((p: any) => ({
+                value: p._id,
+                label: `[${p.code}] ${p.name}`,
+                badge: p.code,
+              })) || []),
+            ]}
+          />
 
-          <div>
-            <select
-              value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value)}
-              className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#00b0ef]"
-            >
-              <option value="ALL">All Severities</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
+          <TypeSelect
+            size="sm"
+            value={severityFilter}
+            onChange={(val) => setSeverityFilter(val)}
+            placeholder="All Severities"
+            options={[
+              { value: "ALL", label: "All Severities" },
+              { value: "Critical", label: "Critical" },
+              { value: "High", label: "High" },
+              { value: "Medium", label: "Medium" },
+              { value: "Low", label: "Low" },
+            ]}
+          />
 
-          <div>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#00b0ef]"
-            >
-              <option value="ALL">All Discrepancy Types</option>
-              <option value="Scope Change">Scope Change</option>
-              <option value="Effort Overrun">Effort Overrun</option>
-              <option value="Delay">Delay / Work Lag</option>
-              <option value="Quality Issue">Quality Issue</option>
-              <option value="Requirement Gap">Requirement Gap</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
+          <TypeSelect
+            size="sm"
+            value={typeFilter}
+            onChange={(val) => setTypeFilter(val)}
+            placeholder="All Discrepancy Types"
+            options={[
+              { value: "ALL", label: "All Discrepancy Types" },
+              { value: "Scope Change", label: "Scope Change" },
+              { value: "Effort Overrun", label: "Effort Overrun" },
+              { value: "Delay", label: "Delay / Work Lag" },
+              { value: "Quality Issue", label: "Quality Issue" },
+              { value: "Requirement Gap", label: "Requirement Gap" },
+              { value: "Other", label: "Other" },
+            ]}
+          />
         </div>
       </div>
 

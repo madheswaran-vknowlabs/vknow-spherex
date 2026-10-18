@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TypeSelect } from "@/components/ui/type-select";
 
 // Auto format smart time entry (e.g. "1000" -> "10:00 AM", "2330" -> "11:30 PM")
 function formatSmartTime(input: string): string {
@@ -551,78 +552,73 @@ export default function DailyUpdatePage() {
                   </span>
                 </div>
 
-                {/* Row 0: Work Location & Day Type Dropdowns */}
+                {/* Row 0: Work Location & Day Type Type/Select Comboboxes */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-[#00b0ef]" />
-                      <span>Work Location (Attendance Mode) *</span>
-                    </label>
-                    <select
-                      value={workLocation}
-                      onChange={(e) => setWorkLocation(e.target.value as any)}
-                      className="w-full h-11 px-3.5 text-xs sm:text-sm font-bold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#00b0ef] outline-hidden cursor-pointer"
-                    >
-                      <option value="In Office">🏢 In Office (Physical Workplace)</option>
-                      <option value="Work From Home">🏠 Work From Home (WFH Remote)</option>
-                      <option value="Client Site">📍 Client Site (On-site Visit)</option>
-                    </select>
-                  </div>
+                  <TypeSelect
+                    label="Work Location (Attendance Mode)"
+                    icon={Building2}
+                    required
+                    value={workLocation}
+                    onChange={(val) => setWorkLocation(val as any)}
+                    options={[
+                      { value: "In Office", label: "In Office (Physical Workplace)", icon: Building2, sublabel: "Working on-site at company office" },
+                      { value: "Work From Home", label: "Work From Home (WFH Remote)", icon: Home, sublabel: "Working remotely from home" },
+                      { value: "Client Site", label: "Client Site (On-site Visit)", icon: MapPin, sublabel: "Working at client office or deployment site" },
+                    ]}
+                    placeholder="Type or select work location..."
+                  />
 
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                      <CalendarDays className="w-3.5 h-3.5 text-[#00b0ef]" />
-                      <span>Day Type *</span>
-                    </label>
-                    <select
-                      value={dayType}
-                      onChange={(e) => setDayType(e.target.value as any)}
-                      className="w-full h-11 px-3.5 text-xs sm:text-sm font-bold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#00b0ef] outline-hidden cursor-pointer"
-                    >
-                      <option value="Work Day">💼 Work Day (Standard Operating Day)</option>
-                      <option value="Non Work Day">🏖️ Non Work Day (Weekend / Weekly Off)</option>
-                      <option value="Festival Day">🎉 Festival Day (Public / Gazetted Holiday)</option>
-                    </select>
-                  </div>
+                  <TypeSelect
+                    label="Day Type"
+                    icon={CalendarDays}
+                    required
+                    value={dayType}
+                    onChange={(val) => setDayType(val as any)}
+                    options={[
+                      { value: "Work Day", label: "Work Day (Standard Operating Day)", sublabel: "Standard working day with deliverables" },
+                      { value: "Non Work Day", label: "Non Work Day (Weekend / Weekly Off)", sublabel: "Weekly off or company non-operating day" },
+                      { value: "Festival Day", label: "Festival Day (Public / Gazetted Holiday)", sublabel: "Official gazetted holiday or festive break" },
+                    ]}
+                    placeholder="Type or select day type..."
+                  />
                 </div>
 
-                {/* Row 1: Project & Stage Dropdown */}
+                {/* Row 1: Project & Stage Type/Select Comboboxes */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      Project
-                    </label>
-                    <select
-                      value={selectedProjectId}
-                      onChange={(e) => setSelectedProjectId(e.target.value)}
-                      className="w-full h-11 px-3 text-xs sm:text-sm font-semibold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#00b0ef] outline-hidden cursor-pointer"
-                    >
-                      {data?.projects?.map((p: any) => (
-                        <option key={p._id} value={p._id}>
-                          {p.name} ({p.code || p.key || "PRJ"})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <TypeSelect
+                    label="Project"
+                    icon={Briefcase}
+                    required
+                    value={selectedProjectId}
+                    onChange={(val) => setSelectedProjectId(val)}
+                    options={
+                      data?.projects?.map((p: any) => ({
+                        value: p._id,
+                        label: `${p.name} (${p.code || p.key || "PRJ"})`,
+                        badge: p.code || p.key,
+                        sublabel: p.client ? `Client: ${p.client}` : undefined,
+                      })) || []
+                    }
+                    placeholder="Type to search or select project..."
+                  />
 
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      Project Stage / Module
-                    </label>
-                    <select
-                      value={selectedStageId}
-                      onChange={(e) => setSelectedStageId(e.target.value)}
-                      className="w-full h-11 px-3 text-xs sm:text-sm font-semibold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#00b0ef] outline-hidden cursor-pointer"
-                    >
-                      {data?.stages
+                  <TypeSelect
+                    label="Project Stage / Module"
+                    icon={Layers}
+                    required
+                    value={selectedStageId}
+                    onChange={(val) => setSelectedStageId(val)}
+                    options={
+                      data?.stages
                         ?.filter((s: any) => s.projectId === selectedProjectId)
-                        .map((s: any) => (
-                          <option key={s._id} value={s._id}>
-                            #{s.order} {s.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                        .map((s: any) => ({
+                          value: s._id,
+                          label: `#${s.order} ${s.name}`,
+                          badge: s.status ? s.status : undefined,
+                        })) || []
+                    }
+                    placeholder="Type to search or select stage..."
+                  />
                 </div>
 
                 {/* Row 2: Deliverable Title & Description */}
@@ -684,20 +680,19 @@ export default function DailyUpdatePage() {
                     />
                   </div>
 
-                  <div className="w-full sm:w-36">
-                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      Status
-                    </label>
-                    <select
+                  <div className="w-full sm:w-44">
+                    <TypeSelect
+                      label="Status"
                       value={taskStatus}
-                      onChange={(e) => setTaskStatus(e.target.value)}
-                      className="w-full h-11 px-3 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#00b0ef] outline-hidden cursor-pointer"
-                    >
-                      <option value="Completed">Completed</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Blocked">Blocked</option>
-                      <option value="To Do">To Do</option>
-                    </select>
+                      onChange={(val) => setTaskStatus(val)}
+                      options={[
+                        { value: "Completed", label: "Completed", badge: "Done" },
+                        { value: "In Progress", label: "In Progress", badge: "Active" },
+                        { value: "Blocked", label: "Blocked", badge: "Risk" },
+                        { value: "To Do", label: "To Do", badge: "Queue" },
+                      ]}
+                      placeholder="Select status..."
+                    />
                   </div>
 
                   <div className="w-full sm:w-auto ml-auto">
@@ -924,22 +919,21 @@ export default function DailyUpdatePage() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                    Leave Type *
-                  </label>
-                  <select
-                    value={leaveType}
-                    onChange={(e) => setLeaveType(e.target.value)}
-                    className="w-full h-11 px-3.5 text-xs sm:text-sm font-bold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-                  >
-                    <option value="Casual Leave">Casual Leave (CL)</option>
-                    <option value="Sick Leave">Sick Leave (SL)</option>
-                    <option value="Paid Time Off">Paid Time Off (PTO)</option>
-                    <option value="Holiday">Official Public Holiday</option>
-                    <option value="Other">Other Approved Absence</option>
-                  </select>
-                </div>
+                <TypeSelect
+                  label="Leave Type"
+                  icon={Palmtree}
+                  required
+                  value={leaveType}
+                  onChange={(val) => setLeaveType(val)}
+                  options={[
+                    { value: "Casual Leave", label: "Casual Leave (CL)", sublabel: "Short personal or casual absence" },
+                    { value: "Sick Leave", label: "Sick Leave (SL)", sublabel: "Health and medical absence" },
+                    { value: "Paid Time Off", label: "Paid Time Off (PTO)", sublabel: "Planned annual vacation leave" },
+                    { value: "Holiday", label: "Official Public Holiday", sublabel: "Gazetted enterprise holiday" },
+                    { value: "Other", label: "Other Approved Absence", sublabel: "Approved extraordinary absence" },
+                  ]}
+                  placeholder="Type or select leave type..."
+                />
 
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">

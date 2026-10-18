@@ -25,6 +25,7 @@ import {
   Sparkles,
   AlertCircle,
 } from "lucide-react";
+import { TypeSelect } from "@/components/ui/type-select";
 
 import { useSession } from "next-auth/react";
 
@@ -313,29 +314,32 @@ export default function AdminUsersPage() {
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-            className="h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-          >
-            <option value="ALL">All Departments</option>
-            {departments.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <div className="w-full sm:w-56">
+            <TypeSelect
+              value={selectedDept}
+              onChange={(val) => setSelectedDept(val)}
+              placeholder="All Departments"
+              options={[
+                { value: "ALL", label: "All Departments" },
+                ...departments.map((d) => ({ value: d, label: d })),
+              ]}
+            />
+          </div>
 
-          <select
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
-            className="h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-          >
-            <option value="ALL">All Roles</option>
-            <option value="user">Team Members</option>
-            <option value="admin">Administrators</option>
-          </select>
+          <div className="w-full sm:w-48">
+            <TypeSelect
+              value={selectedRole}
+              onChange={(val) => setSelectedRole(val)}
+              placeholder="All Roles"
+              options={[
+                { value: "ALL", label: "All Roles" },
+                { value: "user", label: "Team Members" },
+                { value: "manager", label: "Managers" },
+                { value: "admin", label: "Administrators" },
+              ]}
+            />
+          </div>
         </div>
       </div>
 
@@ -551,40 +555,45 @@ export default function AdminUsersPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold">Department</Label>
-                  <select
+                <div>
+                  <TypeSelect
+                    label="Department"
                     value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-medium text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-                  >
-                    <option value="Engineering">Engineering</option>
-                    <option value="Frontend">Frontend Development</option>
-                    <option value="Backend">Backend &amp; API</option>
-                    <option value="UI/UX Design">UI/UX Design</option>
-                    <option value="Quality Assurance">Quality Assurance (QA)</option>
-                    <option value="DevOps &amp; Infra">DevOps &amp; Infra</option>
-                    <option value="Product Management">Product Management</option>
-                    <option value="Executive Management">Executive Management</option>
-                  </select>
+                    onChange={(val) => setDepartment(val)}
+                    placeholder="Select department..."
+                    options={[
+                      { value: "Engineering", label: "Engineering" },
+                      { value: "Frontend", label: "Frontend Development" },
+                      { value: "Backend", label: "Backend & API" },
+                      { value: "UI/UX Design", label: "UI/UX Design" },
+                      { value: "Quality Assurance", label: "Quality Assurance (QA)" },
+                      { value: "DevOps & Infra", label: "DevOps & Infra" },
+                      { value: "Product Management", label: "Product Management" },
+                      { value: "Executive Management", label: "Executive Management" },
+                    ]}
+                  />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold">System Role</Label>
+                <div>
                   {isManager ? (
-                    <div className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center text-sm font-semibold text-[#00b0ef]">
-                      Employee (Assigned to Your Team)
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold">System Role</Label>
+                      <div className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center text-sm font-semibold text-[#00b0ef]">
+                        Employee (Assigned to Your Team)
+                      </div>
                     </div>
                   ) : (
-                    <select
+                    <TypeSelect
+                      label="System Role"
                       value={role}
-                      onChange={(e) => setRole(e.target.value as any)}
-                      className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-medium text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-                    >
-                      <option value="employee">Employee (My Work &amp; Reports)</option>
-                      <option value="manager">Manager (Team &amp; Projects)</option>
-                      <option value="admin">Administrator (Full Access)</option>
-                    </select>
+                      onChange={(val) => setRole(val as any)}
+                      placeholder="Select system role..."
+                      options={[
+                        { value: "employee", label: "Employee (My Work & Reports)" },
+                        { value: "manager", label: "Manager (Team & Projects)" },
+                        { value: "admin", label: "Administrator (Full Access)" },
+                      ]}
+                    />
                   )}
                 </div>
               </div>

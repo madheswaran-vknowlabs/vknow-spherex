@@ -46,6 +46,7 @@ import { CoolDropdown } from "@/components/ui/cool-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LogWorkModal } from "@/components/tasks/LogWorkModal";
 import { ManageProjectTeamModal } from "@/components/projects/ManageProjectTeamModal";
+import { TypeSelect } from "@/components/ui/type-select";
 
 export default function ProjectDetailPage({
   params,
@@ -1251,20 +1252,29 @@ export default function ProjectDetailPage({
 
               {/* Assignee Selector: Only Admin & Manager can choose; Employees are locked to themselves */}
               {canAssignOthers ? (
-                <div className="shrink-0">
-                  <select
+                <div className="shrink-0 min-w-[190px]">
+                  <TypeSelect
+                    size="sm"
                     value={quickAssignee}
-                    onChange={(e) => setQuickAssignee(e.target.value)}
-                    className="h-11 px-3 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs min-w-[150px] cursor-pointer"
-                  >
-                    <option value={(session?.user as any)?.id || ""}>Me ({session?.user?.name || "Assignee"})</option>
-                    <option value="">-- Unassigned --</option>
-                    {activeUsers.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setQuickAssignee(val)}
+                    placeholder="Assign to..."
+                    options={[
+                      {
+                        value: (session?.user as any)?.id || "",
+                        label: `Me (${session?.user?.name || "Assignee"})`,
+                        badge: "Self",
+                      },
+                      {
+                        value: "",
+                        label: "-- Unassigned --",
+                      },
+                      ...activeUsers.map((u) => ({
+                        value: u._id,
+                        label: u.name,
+                        sublabel: u.role ? u.role.toUpperCase() : undefined,
+                      })),
+                    ]}
+                  />
                 </div>
               ) : (
                 <div

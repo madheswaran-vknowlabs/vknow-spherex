@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { addDays, format } from "date-fns";
 import { DatePicker } from "@/components/ui/date-picker";
+import { TypeSelect } from "@/components/ui/type-select";
 
 interface AssignedProject {
   _id: string;
@@ -276,44 +277,41 @@ export function CreateTaskModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Project & Stage Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Assigned Project *</Label>
-              <select
-                value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                required
-                className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-              >
-                {projects.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    [{p.code}] {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <TypeSelect
+              label="Assigned Project"
+              required
+              value={selectedProjectId}
+              onChange={(val) => setSelectedProjectId(val)}
+              placeholder="Type or select project..."
+              options={projects.map((p) => ({
+                value: p._id,
+                label: `[${p.code}] ${p.name}`,
+                badge: p.code,
+              }))}
+            />
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Lifecycle Stage *</Label>
-              {loadingProjectData ? (
+            {loadingProjectData ? (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Lifecycle Stage *</Label>
                 <div className="h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center text-xs text-slate-400">
                   <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
                   Loading stages...
                 </div>
-              ) : (
-                <select
-                  value={selectedStageId}
-                  onChange={(e) => setSelectedStageId(e.target.value)}
-                  required
-                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-                >
-                  {stages.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      Stage {s.order}: {s.name} ({s.status})
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+              </div>
+            ) : (
+              <TypeSelect
+                label="Lifecycle Stage"
+                required
+                value={selectedStageId}
+                onChange={(val) => setSelectedStageId(val)}
+                placeholder="Type or select stage..."
+                options={stages.map((s) => ({
+                  value: s._id,
+                  label: `Stage ${s.order}: ${s.name}`,
+                  badge: s.status,
+                }))}
+              />
+            )}
           </div>
 
           {/* Task Title */}
@@ -342,32 +340,33 @@ export function CreateTaskModal({
 
           {/* Assignee & Priority */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold">Assignee</Label>
-                {!canAssignOthers && (
-                  <span className="text-[10px] text-slate-400 font-medium">Assigned to you</span>
-                )}
-              </div>
+            <div>
               {canAssignOthers ? (
-                <select
+                <TypeSelect
+                  label="Assignee"
                   value={assigneeId}
-                  onChange={(e) => setAssigneeId(e.target.value)}
-                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-                >
-                  {projectMembers.map((m) => (
-                    <option key={m._id} value={m._id}>
-                      {m.name} {m._id === currentUserId ? "(Myself)" : ""} ({m.department || m.role})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setAssigneeId(val)}
+                  placeholder="Type or select assignee..."
+                  options={projectMembers.map((m) => ({
+                    value: m._id,
+                    label: `${m.name} ${m._id === currentUserId ? "(Myself)" : ""}`,
+                    badge: m._id === currentUserId ? "Myself" : undefined,
+                    sublabel: m.department || m.role,
+                  }))}
+                />
               ) : (
-                <div
-                  className="h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-2xs select-none"
-                  title="Assignee locked to your login. Only Admin & Managers can assign to others."
-                >
-                  <UserCheck className="w-4 h-4 text-[#00b0ef]" />
-                  <span>{session?.user?.name || "Me"} (Yourself)</span>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold">Assignee</Label>
+                    <span className="text-[10px] text-slate-400 font-medium">Assigned to you</span>
+                  </div>
+                  <div
+                    className="h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-2xs select-none"
+                    title="Assignee locked to your login. Only Admin & Managers can assign to others."
+                  >
+                    <UserCheck className="w-4 h-4 text-[#00b0ef]" />
+                    <span>{session?.user?.name || "Me"} (Yourself)</span>
+                  </div>
                 </div>
               )}
             </div>

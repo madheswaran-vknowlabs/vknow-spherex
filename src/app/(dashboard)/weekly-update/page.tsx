@@ -16,6 +16,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
+import { TypeSelect } from "@/components/ui/type-select";
 
 export default function WeeklyUpdateStandalonePage() {
   const router = useRouter();
@@ -215,22 +216,19 @@ export default function WeeklyUpdateStandalonePage() {
 
             {/* Project Picker & Same As Last Week Quick Action */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
-              <div className="flex items-center gap-2 flex-1">
-                <Label htmlFor="proj-select-page" className="text-xs shrink-0 font-bold">
-                  Project:
-                </Label>
-                <select
-                  id="proj-select-page"
+              <div className="flex-1">
+                <TypeSelect
+                  size="sm"
+                  label="Select Project"
                   value={selectedProjectId}
-                  onChange={(e) => setSelectedProjectId(e.target.value)}
-                  className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white flex-1"
-                >
-                  {projects.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.code} - {p.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedProjectId(val)}
+                  placeholder="Type or select project..."
+                  options={projects.map((p) => ({
+                    value: p._id,
+                    label: `${p.code} - ${p.name}`,
+                    badge: p.code,
+                  }))}
+                />
               </div>
 
               {lastWeekUpdate && (
@@ -276,16 +274,19 @@ export default function WeeklyUpdateStandalonePage() {
                             <span className="text-[11px] font-mono font-bold text-[#00b0ef]">
                               {taskUpdate.progress}%
                             </span>
-                            <select
-                              value={taskUpdate.status}
-                              onChange={(e) => updateTaskStatus(t._id, e.target.value)}
-                              className="h-6 px-1.5 rounded text-[10px] font-semibold border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
-                            >
-                              <option value="In Progress">In Progress</option>
-                              <option value="Under Review">Under Review</option>
-                              <option value="Completed">Completed</option>
-                              <option value="Blocked">Blocked</option>
-                            </select>
+                            <div className="w-32">
+                              <TypeSelect
+                                size="sm"
+                                value={taskUpdate.status}
+                                onChange={(val) => updateTaskStatus(t._id, val)}
+                                options={[
+                                  { value: "In Progress", label: "In Progress" },
+                                  { value: "Under Review", label: "Under Review" },
+                                  { value: "Completed", label: "Completed" },
+                                  { value: "Blocked", label: "Blocked" },
+                                ]}
+                              />
+                            </div>
                           </div>
                         </div>
 

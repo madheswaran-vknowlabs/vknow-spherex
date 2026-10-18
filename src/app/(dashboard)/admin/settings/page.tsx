@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TypeSelect } from "@/components/ui/type-select";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -251,22 +252,15 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Submission Deadline Day
-                </label>
-                <select
-                  value={reminderDay}
-                  onChange={(e) => setReminderDay(Number(e.target.value))}
-                  className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00b0ef]"
-                >
-                  {DAYS_OF_WEEK.map((d) => (
-                    <option key={d.value} value={d.value}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <TypeSelect
+                label="Submission Deadline Day"
+                value={String(reminderDay)}
+                onChange={(val) => setReminderDay(Number(val))}
+                options={DAYS_OF_WEEK.map((d) => ({
+                  value: String(d.value),
+                  label: d.label,
+                }))}
+              />
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
@@ -276,26 +270,22 @@ export default function AdminSettingsPage() {
                   type="time"
                   value={reminderTime}
                   onChange={(e) => setReminderTime(e.target.value)}
-                  className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00b0ef]"
+                  className="w-full text-xs rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 h-11 text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-[#00b0ef]"
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  System Operating Timezone
-                </label>
-                <select
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00b0ef]"
-                >
-                  <option value="Asia/Kolkata">Asia/Kolkata (IST, UTC+05:30)</option>
-                  <option value="UTC">UTC (Coordinated Universal Time)</option>
-                  <option value="America/New_York">America/New_York (EST, UTC-05:00)</option>
-                  <option value="Europe/London">Europe/London (GMT/BST)</option>
-                  <option value="Asia/Singapore">Asia/Singapore (SGT, UTC+08:00)</option>
-                </select>
-              </div>
+              <TypeSelect
+                label="System Operating Timezone"
+                value={timezone}
+                onChange={(val) => setTimezone(val)}
+                options={[
+                  { value: "Asia/Kolkata", label: "Asia/Kolkata (IST, UTC+05:30)" },
+                  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
+                  { value: "America/New_York", label: "America/New_York (EST, UTC-05:00)" },
+                  { value: "Europe/London", label: "Europe/London (GMT/BST)" },
+                  { value: "Asia/Singapore", label: "Asia/Singapore (SGT, UTC+08:00)" },
+                ]}
+              />
             </div>
           </div>
 

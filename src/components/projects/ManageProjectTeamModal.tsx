@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TypeSelect } from "@/components/ui/type-select";
 
 interface ManageProjectTeamModalProps {
   projectId: string;
@@ -207,19 +208,18 @@ export function ManageProjectTeamModal({
             ) : (
               <form onSubmit={handleAddEmployee} className="flex flex-col sm:flex-row items-center gap-2.5">
                 <div className="flex-1 w-full">
-                  <select
+                  <TypeSelect
                     id="add-member-select"
-                    data-testid="add-member-select"
                     value={selectedUserId}
-                    onChange={(e) => setSelectedUserId(e.target.value)}
-                    className="w-full h-11 px-3 text-xs sm:text-sm font-semibold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#00b0ef] outline-hidden cursor-pointer"
-                  >
-                    {availableUsers.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.name} ({u.email}) &bull; {u.role?.toUpperCase()} &bull; {u.department || "Engineering"}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedUserId(val)}
+                    placeholder="Search employee by name, email, department..."
+                    options={availableUsers.map((u) => ({
+                      value: u._id,
+                      label: u.name,
+                      sublabel: `${u.email} • ${u.department || "Engineering"}`,
+                      badge: u.role?.toUpperCase(),
+                    }))}
+                  />
                 </div>
 
                 <Button

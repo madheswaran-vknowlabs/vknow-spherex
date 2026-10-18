@@ -15,6 +15,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TypeSelect } from "@/components/ui/type-select";
 import { DiscrepancyType, DiscrepancySeverity } from "@/types/models";
 
 interface RaiseDiscrepancyModalProps {
@@ -206,69 +207,56 @@ export function RaiseDiscrepancyModal({
 
           {/* Project & Context Pickers */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                Project *
-              </label>
-              <select
-                value={projectId}
-                onChange={(e) => {
-                  setProjectId(e.target.value);
-                  setStageId("");
-                  setTaskId("");
-                }}
-                disabled={!!defaultProjectId}
-                className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00b0ef]"
-              >
-                <option value="">Select Project...</option>
-                {projectsData?.map((p: any) => (
-                  <option key={p._id} value={p._id}>
-                    [{p.code}] {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <TypeSelect
+              label="Project"
+              required
+              disabled={!!defaultProjectId}
+              value={projectId}
+              onChange={(val) => {
+                setProjectId(val);
+                setStageId("");
+                setTaskId("");
+              }}
+              placeholder="Select Project..."
+              options={projectsData?.map((p: any) => ({
+                value: p._id,
+                label: `[${p.code}] ${p.name}`,
+                badge: p.code,
+              })) || []}
+            />
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                Lifecycle Stage (Optional)
-              </label>
-              <select
-                value={stageId}
-                onChange={(e) => {
-                  setStageId(e.target.value);
-                  setTaskId("");
-                }}
-                disabled={!projectId}
-                className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00b0ef] disabled:opacity-50"
-              >
-                <option value="">All Stages / Project-Wide</option>
-                {stages?.map((s: any) => (
-                  <option key={s._id} value={s._id}>
-                    {s.order}. {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <TypeSelect
+              label="Lifecycle Stage (Optional)"
+              disabled={!projectId}
+              value={stageId}
+              onChange={(val) => {
+                setStageId(val);
+                setTaskId("");
+              }}
+              placeholder="All Stages / Project-Wide"
+              options={[
+                { value: "", label: "All Stages / Project-Wide" },
+                ...(stages?.map((s: any) => ({
+                  value: s._id,
+                  label: `${s.order}. ${s.name}`,
+                })) || []),
+              ]}
+            />
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                Specific Task (Optional)
-              </label>
-              <select
-                value={taskId}
-                onChange={(e) => setTaskId(e.target.value)}
-                disabled={!projectId}
-                className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00b0ef] disabled:opacity-50"
-              >
-                <option value="">No specific task</option>
-                {filteredTasks?.map((t: any) => (
-                  <option key={t._id} value={t._id}>
-                    {t.title}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <TypeSelect
+              label="Specific Task (Optional)"
+              disabled={!projectId}
+              value={taskId}
+              onChange={(val) => setTaskId(val)}
+              placeholder="No specific task"
+              options={[
+                { value: "", label: "No specific task" },
+                ...(filteredTasks?.map((t: any) => ({
+                  value: t._id,
+                  label: t.title,
+                })) || []),
+              ]}
+            />
           </div>
 
           {/* Discrepancy Type Grid */}

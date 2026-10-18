@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TypeSelect } from "@/components/ui/type-select";
 import { format, subDays } from "date-fns";
 
 interface DailyReminderModalProps {
@@ -170,32 +171,32 @@ export function DailyReminderModal({ userRole, userName }: DailyReminderModalPro
               </div>
 
               <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Date</label>
-                  <select
-                    value={leaveDate}
-                    onChange={(e) => setLeaveDate(e.target.value)}
-                    className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold"
-                  >
-                    <option value={todayStr}>Today ({format(new Date(), "dd MMM")})</option>
-                    <option value={yesterdayStr}>Yesterday ({format(subDays(new Date(), 1), "dd MMM")})</option>
-                  </select>
-                </div>
+                <TypeSelect
+                  label="Date"
+                  size="sm"
+                  value={leaveDate}
+                  onChange={(val) => setLeaveDate(val)}
+                  options={[
+                    { value: todayStr, label: `Today (${format(new Date(), "dd MMM")})` },
+                    { value: yesterdayStr, label: `Yesterday (${format(subDays(new Date(), 1), "dd MMM")})` },
+                  ]}
+                  placeholder="Select date..."
+                />
 
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Leave Type</label>
-                  <select
-                    value={leaveType}
-                    onChange={(e) => setLeaveType(e.target.value)}
-                    className="w-full h-10 px-3 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold"
-                  >
-                    <option value="Casual Leave">Casual Leave (CL)</option>
-                    <option value="Sick Leave">Sick Leave (SL)</option>
-                    <option value="Paid Time Off">Paid Time Off (PTO)</option>
-                    <option value="Holiday">Official Holiday</option>
-                    <option value="Other">Other Leave</option>
-                  </select>
-                </div>
+                <TypeSelect
+                  label="Leave Type"
+                  size="sm"
+                  value={leaveType}
+                  onChange={(val) => setLeaveType(val)}
+                  options={[
+                    { value: "Casual Leave", label: "Casual Leave (CL)", sublabel: "Short personal absence" },
+                    { value: "Sick Leave", label: "Sick Leave (SL)", sublabel: "Medical absence" },
+                    { value: "Paid Time Off", label: "Paid Time Off (PTO)", sublabel: "Annual leave" },
+                    { value: "Holiday", label: "Official Holiday", sublabel: "Public holiday" },
+                    { value: "Other", label: "Other Leave", sublabel: "Approved absence" },
+                  ]}
+                  placeholder="Select leave type..."
+                />
               </div>
 
               <div>
