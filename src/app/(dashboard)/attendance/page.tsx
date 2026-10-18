@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { format, parseISO, addMonths, subMonths, isToday, isWeekend } from "date-fns";
 import {
@@ -50,6 +50,7 @@ const CORPORATE_LEAVES = [
     short: "CL",
     defaultQuota: 12,
     icon: Palmtree,
+    nature: "Annual Discretionary",
     color: "from-amber-500 to-orange-500",
     bgLight: "bg-amber-50 dark:bg-amber-950/30",
     border: "border-amber-200 dark:border-amber-800",
@@ -62,6 +63,7 @@ const CORPORATE_LEAVES = [
     short: "SL",
     defaultQuota: 12,
     icon: Stethoscope,
+    nature: "Health & Clinical Recovery",
     color: "from-rose-500 to-pink-500",
     bgLight: "bg-rose-50 dark:bg-rose-950/30",
     border: "border-rose-200 dark:border-rose-800",
@@ -74,6 +76,7 @@ const CORPORATE_LEAVES = [
     short: "EL",
     defaultQuota: 15,
     icon: Award,
+    nature: "Privilege & Accrual Benefit",
     color: "from-emerald-500 to-teal-500",
     bgLight: "bg-emerald-50 dark:bg-emerald-950/30",
     border: "border-emerald-200 dark:border-emerald-800",
@@ -86,6 +89,7 @@ const CORPORATE_LEAVES = [
     short: "ML",
     defaultQuota: 180,
     icon: Baby,
+    nature: "Statutory Paid Care (26W)",
     color: "from-purple-500 to-indigo-500",
     bgLight: "bg-purple-50 dark:bg-purple-950/30",
     border: "border-purple-200 dark:border-purple-800",
@@ -98,6 +102,7 @@ const CORPORATE_LEAVES = [
     short: "PL",
     defaultQuota: 15,
     icon: HeartHandshake,
+    nature: "Paid Newborn / Adoption Care",
     color: "from-sky-500 to-blue-500",
     bgLight: "bg-sky-50 dark:bg-sky-950/30",
     border: "border-sky-200 dark:border-sky-800",
@@ -110,6 +115,7 @@ const CORPORATE_LEAVES = [
     short: "MedL",
     defaultQuota: 15,
     icon: HeartPulse,
+    nature: "Special Extended Health",
     color: "from-red-500 to-rose-600",
     bgLight: "bg-red-50 dark:bg-red-950/30",
     border: "border-red-200 dark:border-red-800",
@@ -373,8 +379,31 @@ export default function AttendancePage() {
 
   const pendingApprovalsCount = leaveData?.pendingApprovals?.length || 0;
 
+  // Compute corporate standard leave totals
+  const leaveSummary = useMemo(() => {
+    let totalAllocated = 0;
+    let totalUsed = 0;
+    let totalPending = 0;
+
+    CORPORATE_LEAVES.forEach((type) => {
+      const typeBal = leaveData?.balance ? leaveData.balance[type.key] : null;
+      const allocated = typeBal?.allocated ?? type.defaultQuota;
+      const used = typeBal?.used ?? 0;
+      const pending = typeBal?.pending ?? 0;
+
+      totalAllocated += allocated;
+      totalUsed += used;
+      totalPending += pending;
+    });
+
+    const totalLeft = Math.max(0, totalAllocated - totalUsed - totalPending);
+    const overallPercent = totalAllocated > 0 ? Math.min(100, Math.round((totalUsed / totalAllocated) * 100)) : 0;
+
+    return { totalAllocated, totalUsed, totalPending, totalLeft, overallPercent };
+  }, [leaveData?.balance]);
+
   return (
-    <div className="space-y-6 pb-20 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-20 w-full">
       {/* Top Header Card */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
@@ -458,123 +487,253 @@ export default function AttendancePage() {
       {/* ============================================================== */}
       {activeTab === "self" && (
         <div className="space-y-6">
-          {/* SECTION 1: CORPORATE STANDARD LEAVE BALANCES (Taken / Left) */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[#00b0ef]" />
-                  <span>Corporate Standard Leave Balances</span>
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Allocated quota vs days taken and remaining available for Year {new Date().getFullYear()}
-                </p>
+          {/* SECTION 1: CORPORATE STANDARD LEAVE BALANCES (DENSE TABLE) */}
+          <div className="space-y-3.5 w-full">
+            {/* KPI Summary Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                  Total Entitlement
+                </span>
+                <div className="text-2xl font-black text-slate-900 dark:text-white flex items-baseline justify-between">
+                  <span>{leaveSummary.totalAllocated}</span>
+                  <span className="text-[10px] font-semibold text-slate-400">Days / Yr</span>
+                </div>
               </div>
 
-              <span className="text-[11px] font-bold text-slate-400">
-                Standard Entitlement Cycle
-              </span>
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block mb-0.5">
+                  Total Days Taken
+                </span>
+                <div className="text-2xl font-black text-amber-600 dark:text-amber-400 flex items-baseline justify-between">
+                  <span>{leaveSummary.totalUsed}</span>
+                  <span className="text-[10px] font-semibold text-amber-500">Days Used</span>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 block mb-0.5">
+                  Pending Approval
+                </span>
+                <div className="text-2xl font-black text-purple-600 dark:text-purple-400 flex items-baseline justify-between">
+                  <span>{leaveSummary.totalPending}</span>
+                  <span className="text-[10px] font-semibold text-purple-500">In Review</span>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-0.5">
+                  Balance Remaining
+                </span>
+                <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 flex items-baseline justify-between">
+                  <span>{leaveSummary.totalLeft}</span>
+                  <span className="text-[10px] font-semibold text-emerald-500">Available</span>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs col-span-2 sm:col-span-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#00b0ef] block mb-0.5">
+                  Policy Cycle
+                </span>
+                <div className="text-2xl font-black text-[#00b0ef] flex items-baseline justify-between">
+                  <span>{new Date().getFullYear()}</span>
+                  <span className="text-[10px] font-semibold text-slate-400">Enterprise</span>
+                </div>
+              </div>
             </div>
 
-            {/* 6 Corporate Standard Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {CORPORATE_LEAVES.map((type) => {
-                const typeBal = leaveData?.balance ? leaveData.balance[type.key] : null;
-                const allocated = typeBal?.allocated ?? type.defaultQuota;
-                const used = typeBal?.used ?? 0;
-                const pending = typeBal?.pending ?? 0;
-                const left = Math.max(0, allocated - used - pending);
-                const percentUsed = allocated > 0 ? Math.min(100, Math.round((used / allocated) * 100)) : 0;
-                const TypeIcon = type.icon;
+            {/* Dense Table Card Container */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3.5 w-full">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Award className="w-4 h-4 text-[#00b0ef]" />
+                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                    Corporate Standard Leave Balances
+                  </h3>
+                  <Badge variant="cyan" className="text-[10px] font-bold px-2 py-0.5">
+                    Dense Table
+                  </Badge>
+                  <span className="text-xs text-slate-400 font-medium hidden md:inline">
+                    • Allocated quota vs days taken and remaining available for Year {new Date().getFullYear()}
+                  </span>
+                </div>
 
-                return (
-                  <div
-                    key={type.key}
-                    className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all group flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Top Row: Icon + Short Badge + Title */}
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className={`w-9 h-9 rounded-xl ${type.bgLight} ${type.text} flex items-center justify-center shrink-0 shadow-2xs`}
-                          >
-                            <TypeIcon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                                {type.label}
-                              </h4>
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                                {type.short}
-                              </span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] font-bold text-slate-500">
+                    6 Corporate Leave Categories
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Dense Table View */}
+              <div className="w-full overflow-x-auto rounded-2xl border border-slate-200/90 dark:border-slate-800">
+                <table className="w-full text-left text-xs whitespace-nowrap divide-y divide-slate-200/90 dark:divide-slate-800">
+                  <thead className="bg-slate-50/90 dark:bg-slate-800/80 text-[10px] uppercase font-black tracking-wider text-slate-500 dark:text-slate-400 select-none">
+                    <tr>
+                      <th scope="col" className="py-2 px-1.5 text-center w-7">#</th>
+                      <th scope="col" className="py-2 px-2 min-w-[130px]">Leave Category &amp; Code</th>
+                      <th scope="col" className="py-2 px-2 min-w-[140px] max-w-[200px]">Category Description / Purpose</th>
+                      <th scope="col" className="py-2 px-2 min-w-[105px]">Policy Nature</th>
+                      <th scope="col" className="py-2 px-1.5 text-center min-w-[65px]">Allocated</th>
+                      <th scope="col" className="py-2 px-1.5 text-center min-w-[60px]">Taken</th>
+                      <th scope="col" className="py-2 px-1.5 text-center min-w-[55px]">Pending</th>
+                      <th scope="col" className="py-2 px-2 text-center min-w-[95px]">Available Left</th>
+                      <th scope="col" className="py-2 px-2 min-w-[85px]">Usage &amp; Progress</th>
+                      <th scope="col" className="py-2 px-2 text-right min-w-[65px]">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900">
+                    {CORPORATE_LEAVES.map((type, idx) => {
+                      const typeBal = leaveData?.balance ? leaveData.balance[type.key] : null;
+                      const allocated = typeBal?.allocated ?? type.defaultQuota;
+                      const used = typeBal?.used ?? 0;
+                      const pending = typeBal?.pending ?? 0;
+                      const left = Math.max(0, allocated - used - pending);
+                      const percentUsed = allocated > 0 ? Math.min(100, Math.round((used / allocated) * 100)) : 0;
+                      const TypeIcon = type.icon;
+
+                      return (
+                        <tr key={type.key} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                          {/* 1. Index */}
+                          <td className="py-2 px-1.5 text-center font-mono text-slate-400 font-bold text-[11px] w-7">
+                            {idx + 1}
+                          </td>
+
+                          {/* 2. Leave Category & Code */}
+                          <td className="py-2 px-2 min-w-[130px]">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-6 h-6 rounded-lg ${type.bgLight} ${type.text} flex items-center justify-center shrink-0 shadow-2xs`}
+                              >
+                                <TypeIcon className="w-3 h-3" />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-extrabold text-xs text-slate-900 dark:text-white">
+                                  {type.label}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                  {type.short}
+                                </span>
+                              </div>
                             </div>
-                            <p className="text-[10px] text-slate-400 line-clamp-1">{type.desc}</p>
-                          </div>
-                        </div>
-                      </div>
+                          </td>
 
-                      {/* Main Count Display: Left vs Allocated */}
-                      <div className="grid grid-cols-3 gap-2 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center mb-3">
-                        <div>
-                          <div className="text-[10px] uppercase font-bold text-slate-400">Allocated</div>
-                          <div className="text-base font-black text-slate-800 dark:text-slate-100">
-                            {allocated}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] uppercase font-bold text-amber-500">Taken</div>
-                          <div className="text-base font-black text-amber-600 dark:text-amber-400">
-                            {used}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
-                            Available Left
-                          </div>
-                          <div className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                            {left}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar & Pending indicator */}
-                      <div className="space-y-1 mb-3">
-                        <div className="flex justify-between text-[10px] font-semibold text-slate-500">
-                          <span>Usage: {percentUsed}%</span>
-                          {pending > 0 && (
-                            <span className="text-amber-500 font-bold">
-                              {pending} day(s) pending approval
+                          {/* 3. Description */}
+                          <td className="py-2 px-2 max-w-[200px]">
+                            <span className="text-[11px] text-slate-500 truncate block" title={type.desc}>
+                              {type.desc}
                             </span>
-                          )}
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                          <div
-                            className={`h-full bg-gradient-to-r ${type.color} rounded-full transition-all duration-500`}
-                            style={{ width: `${percentUsed}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                          </td>
 
-                    {/* Quick Apply Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setApplyLeaveType(type.label);
-                        setIsApplyModalOpen(true);
-                      }}
-                      className="w-full py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-[#00b0ef] dark:bg-slate-800 dark:hover:bg-[#00b0ef] text-slate-700 hover:text-white dark:text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Apply {type.short}</span>
-                    </button>
-                  </div>
-                );
-              })}
+                          {/* 4. Policy Nature */}
+                          <td className="py-2 px-2 min-w-[105px]">
+                            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              {type.nature || "Enterprise Benefit"}
+                            </span>
+                          </td>
+
+                          {/* 5. Allocated */}
+                          <td className="py-2 px-1.5 text-center min-w-[65px]">
+                            <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
+                              {allocated} Days
+                            </span>
+                          </td>
+
+                          {/* 6. Taken */}
+                          <td className="py-2 px-1.5 text-center min-w-[60px]">
+                            {used > 0 ? (
+                              <span className="font-mono font-bold text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
+                                {used} Days
+                              </span>
+                            ) : (
+                              <span className="font-mono text-xs text-slate-400">0 Days</span>
+                            )}
+                          </td>
+
+                          {/* 7. Pending */}
+                          <td className="py-2 px-1.5 text-center min-w-[55px]">
+                            {pending > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 animate-pulse">
+                                <Clock className="w-2.5 h-2.5" />
+                                <span>{pending}d</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-xs">—</span>
+                            )}
+                          </td>
+
+                          {/* 8. Available Left */}
+                          <td className="py-2 px-2 text-center min-w-[95px]">
+                            <span className="font-mono font-black text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-300 dark:border-emerald-800 shadow-2xs">
+                              {left} Days Left
+                            </span>
+                          </td>
+
+                          {/* 9. Usage & Progress */}
+                          <td className="py-2 px-2 min-w-[85px]">
+                            <div className="w-18 sm:w-20 space-y-1">
+                              <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                                <span>{percentUsed}%</span>
+                                {pending > 0 && (
+                                  <span className="text-amber-500 text-[9px] font-semibold">
+                                    +{pending}d
+                                  </span>
+                                )}
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <div
+                                  className={`h-full bg-gradient-to-r ${type.color} rounded-full transition-all duration-500`}
+                                  style={{ width: `${percentUsed}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 10. Quick Action */}
+                          <td className="py-2 px-2 text-right min-w-[65px]">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                setApplyLeaveType(type.label);
+                                setIsApplyModalOpen(true);
+                              }}
+                              className="h-6 px-2 text-[11px] font-bold bg-slate-100 hover:bg-[#00b0ef] hover:text-white dark:bg-slate-800 dark:hover:bg-[#00b0ef] text-slate-700 dark:text-slate-300 rounded-lg inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              title={`Apply for ${type.label}`}
+                            >
+                              <Plus className="w-3 h-3 stroke-[2.5]" />
+                              <span>Apply</span>
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-slate-50/80 dark:bg-slate-800/60 font-bold text-slate-700 dark:text-slate-200 border-t border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <td colSpan={4} className="py-2 px-3 text-right text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
+                        Consolidated Enterprise Totals:
+                      </td>
+                      <td className="py-2 px-3 text-center font-mono font-black text-xs text-slate-900 dark:text-white">
+                        {leaveSummary.totalAllocated} Days
+                      </td>
+                      <td className="py-2 px-3 text-center font-mono font-black text-xs text-amber-600 dark:text-amber-400">
+                        {leaveSummary.totalUsed} Days
+                      </td>
+                      <td className="py-2 px-3 text-center font-mono font-black text-xs text-purple-600 dark:text-purple-400">
+                        {leaveSummary.totalPending > 0 ? `${leaveSummary.totalPending} Day(s)` : "—"}
+                      </td>
+                      <td className="py-2 px-3 text-center font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                        {leaveSummary.totalLeft} Days Left
+                      </td>
+                      <td colSpan={2} className="py-2 px-3 text-left text-[10px] text-slate-400">
+                        {leaveSummary.overallPercent}% Overall Utilized
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           </div>
 
