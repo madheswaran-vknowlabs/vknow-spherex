@@ -90,7 +90,14 @@ export async function GET(req: NextRequest) {
         .populate("projectId", "name code")
         .sort({ weekStartDate: -1 })
         .lean(),
-      canManage ? User.find({ isActive: true }).select("name email department role avatar").lean() : [],
+      canManage
+        ? User.find({ isActive: true })
+            .select("name email department role avatar managerId createdBy")
+            .populate("managerId", "name email role")
+            .populate("createdBy", "name email role")
+            .sort({ name: 1 })
+            .lean()
+        : [],
     ]);
 
     // Metrics calculations

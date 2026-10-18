@@ -59,6 +59,7 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "manager" | "employee" | "user">("employee");
   const [department, setDepartment] = useState("Engineering");
+  const [managerId, setManagerId] = useState("");
   const [password, setPassword] = useState("password123");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -100,6 +101,7 @@ export default function AdminUsersPage() {
           email: email.trim().toLowerCase(),
           role,
           department: department.trim(),
+          managerId: managerId || null,
           password: password.trim() || "password123",
         }),
       });
@@ -112,6 +114,7 @@ export default function AdminUsersPage() {
       setIsCreateOpen(false);
       setName("");
       setEmail("");
+      setManagerId("");
       setPassword("password123");
       fetchUsers();
     } catch (err: any) {
@@ -368,6 +371,7 @@ export default function AdminUsersPage() {
                   <th className="py-3.5 px-5">Employee</th>
                   <th className="py-3.5 px-4">Department</th>
                   <th className="py-3.5 px-4">Role</th>
+                  <th className="py-3.5 px-4">Reporting Manager</th>
                   <th className="py-3.5 px-4">Account Status</th>
                   <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
@@ -375,6 +379,17 @@ export default function AdminUsersPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                 {filteredUsers.map((u) => {
                   const isAdminUser = u.role === "admin";
+                  const mgrName =
+                    typeof u.managerId === "object" && (u.managerId as any)?.name
+                      ? (u.managerId as any).name
+                      : typeof u.managerId === "string"
+                      ? users.find((m) => m._id === u.managerId)?.name || "Assigned Manager"
+                      : u.role === "manager"
+                      ? "Direct to Admin"
+                      : u.role === "admin"
+                      ? "Executive Board"
+                      : "Direct / Leadership";
+
                   return (
                     <tr
                       key={u._id}
@@ -433,6 +448,13 @@ export default function AdminUsersPage() {
                               ? "Manager"
                               : "Employee"}
                           </span>
+                        </span>
+                      </td>
+
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300">
+                          <Sparkles className="w-3 h-3 text-[#00b0ef]" />
+                          <span>{mgrName}</span>
                         </span>
                       </td>
 
@@ -597,6 +619,26 @@ export default function AdminUsersPage() {
                   )}
                 </div>
               </div>
+
+              {!isManager && role !== "admin" && (
+                <div>
+                  <TypeSelect
+                    label="Assign Reporting Manager"
+                    value={managerId}
+                    onChange={(val) => setManagerId(val)}
+                    placeholder="Select manager (or Direct / Leadership)..."
+                    options={[
+                      { value: "", label: "Direct / Leadership (No Specific Manager)" },
+                      ...users
+                        .filter((u) => u.role === "manager" || u.role === "admin")
+                        .map((m) => ({
+                          value: m._id,
+                          label: `${m.name} (${m.role === "manager" ? "Manager" : "Admin"} • ${m.department || "Engineering"})`,
+                        })),
+                    ]}
+                  />
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">

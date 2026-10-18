@@ -80,11 +80,11 @@ export async function GET(req: NextRequest) {
       dailyQuery.date = dateFilter;
     }
 
-    const [tasks, stages, discrepancies, weeklyUpdates, dailyWorkUpdates] = await Promise.all([
+    const [tasks, stages, discrepancies, weeklyUpdates, dailyWorkUpdates, allUsers] = await Promise.all([
       Task.find(taskQuery)
         .populate("projectId", "name code client")
         .populate("stageId", "name order")
-        .populate("assigneeId", "name email department")
+        .populate("assigneeId", "name email department managerId")
         .lean(),
       Stage.find({ projectId: { $in: projectIds }, isArchived: false })
         .populate("projectId", "code name")
@@ -97,12 +97,102 @@ export async function GET(req: NextRequest) {
         .populate("raisedById", "name")
         .lean(),
       WeeklyUpdate.find(weeklyQuery)
-        .populate("userId", "name department")
+        .populate("userId", "name department email managerId")
         .populate("projectId", "name code")
         .sort({ weekStartDate: -1 })
         .lean(),
       DailyWorkUpdate.find(dailyQuery).sort({ date: -1 }).lean(),
+      User.find({ isActive: true })
+        .populate("managerId", "name email role")
+        .populate("createdBy", "name email role")
+        .sort({ name: 1 })
+        .lean(),
     ]);
+
+    // Build comprehensive manager lookup and direct reports maps
+    const userManagerMap = new Map<string, { managerName: string; managerEmail: string }>();
+    const directReportsMap = new Map<string, string[]>();
+
+    allUsers.forEach((u: any) => {
+      let mgrName = "-";
+      let mgrEmail = "-";
+
+      if (u.managerId && typeof u.managerId === "object" && u.managerId.name) {
+        mgrName = u.managerId.name;
+        mgrEmail = u.managerId.email || "-";
+        const mId = u.managerId._id?.toString();
+        if (mId) {
+          if (!directReportsMap.has(mId)) directReportsMap.set(mId, []);
+          directReportsMap.get(mId)!.push(u.name);
+        }
+      } else if (u.createdBy && typeof u.createdBy === "object" && u.createdBy.name && u.createdBy.role === "manager") {
+        mgrName = u.createdBy.name;
+        mgrEmail = u.createdBy.email || "-";
+        const cId = u.createdBy._id?.toString();
+        if (cId) {
+          if (!directReportsMap.has(cId)) directReportsMap.set(cId, []);
+          directReportsMap.get(cId)!.push(u.name);
+        }
+      } else if (u.role === "admin") {
+        mgrName = "Executive Board";
+      } else if (u.role === "manager") {
+        mgrName = "Direct to Leadership / Admin";
+      } else {
+        mgrName = "Direct / Leadership";
+      }
+
+      userManagerMap.set(u._id.toString(), { managerName: mgrName, managerEmail: mgrEmail });
+    });
+
+    // Enrich tasks with assignee's reporting manager
+    tasks.forEach((t: any) => {
+      const aId = t.assigneeId?._id?.toString() || (typeof t.assigneeId === "string" ? t.assigneeId : null);
+      const mgrInfo = aId ? userManagerMap.get(aId) : null;
+      t.assigneeManagerName = mgrInfo?.managerName || (t.assigneeId?.managerId ? (userManagerMap.get(t.assigneeId.managerId.toString())?.managerName || "-") : "Direct / Leadership");
+    });
+
+    // Enrich weekly updates with author's reporting manager
+    weeklyUpdates.forEach((w: any) => {
+      const uId = w.userId?._id?.toString() || (typeof w.userId === "string" ? w.userId : null);
+      w.reportingManagerName = (uId ? userManagerMap.get(uId)?.managerName : null) || "Direct / Leadership";
+    });
+
+    // Enrich daily work updates with employee's reporting manager
+    dailyWorkUpdates.forEach((u: any) => {
+      const uId = u.userId?.toString();
+      const mgrInfo = uId ? userManagerMap.get(uId) : null;
+      u.reportingManagerName = mgrInfo?.managerName || (u.managerId ? (userManagerMap.get(u.managerId.toString())?.managerName || "-") : "Direct / Leadership");
+    });
+
+    // Construct team roster dataset with explicit Reporting Manager breakdown
+    const teamMembers = allUsers.map((u: any) => {
+      const uId = u._id.toString();
+      const mgrInfo = userManagerMap.get(uId) || { managerName: "Direct / Leadership", managerEmail: "-" };
+      const userTasks = tasks.filter((t: any) => {
+        const tAssigneeId = t.assigneeId?._id?.toString() || t.assigneeId?.toString();
+        return tAssigneeId === uId;
+      });
+      const est = userTasks.reduce((acc: number, t: any) => acc + (t.estimatedHours || 0), 0);
+      const log = userTasks.reduce((acc: number, t: any) => acc + (t.loggedHours || 0), 0);
+      const directReports = directReportsMap.get(uId) || [];
+
+      return {
+        _id: uId,
+        name: u.name,
+        email: u.email,
+        department: u.department || "Engineering",
+        role: u.role,
+        reportingManager: mgrInfo.managerName,
+        managerEmail: mgrInfo.managerEmail,
+        directReportsCount: directReports.length,
+        directReportsList: directReports.length > 0 ? directReports.join(", ") : "-",
+        assignedTasksCount: userTasks.length,
+        estimatedHours: est,
+        loggedHours: log,
+        varianceHours: log - est,
+        isActive: u.isActive !== false,
+      };
+    });
 
     const totalEst = tasks.reduce((acc, t) => acc + (t.estimatedHours || 0), 0);
     const totalLogged = tasks.reduce((acc, t) => acc + (t.loggedHours || 0), 0);
@@ -138,20 +228,18 @@ export async function GET(req: NextRequest) {
       // Staff list to include
       let staffList: any[] = [];
       if (isAdmin) {
-        staffList = await User.find({ isActive: true, role: { $in: ["employee", "manager"] } })
-          .select("name email role department avatar")
-          .sort({ name: 1 })
-          .lean();
+        staffList = allUsers.filter((u: any) => ["employee", "manager", "user"].includes(u.role));
       } else if (user.role === "manager") {
-        staffList = await User.find({
-          isActive: true,
-          $or: [{ managerId: user.id }, { createdBy: user.id }, { role: "employee" }],
-        })
-          .select("name email role department avatar")
-          .sort({ name: 1 })
-          .lean();
+        staffList = allUsers.filter(
+          (u: any) =>
+            u._id.toString() === user.id ||
+            u.managerId?._id?.toString() === user.id ||
+            u.createdBy?._id?.toString() === user.id ||
+            u.role === "employee"
+        );
       } else {
-        staffList = [user];
+        const selfDoc = allUsers.find((u: any) => u._id.toString() === user.id);
+        staffList = [selfDoc || user];
       }
 
       const staffIds = staffList.map((s) => s._id);
@@ -159,6 +247,12 @@ export async function GET(req: NextRequest) {
         userId: { $in: staffIds },
         dateString: { $gte: startDateStr, $lte: endDateStr },
       }).lean();
+
+      // Enrich attendance updates with reporting manager name
+      attUpdates.forEach((u: any) => {
+        const uId = u.userId?.toString();
+        u.reportingManager = (uId ? userManagerMap.get(uId)?.managerName : null) || "Direct / Leadership";
+      });
 
       let totalLoggedHours = 0;
       let inOfficeCount = 0;
@@ -170,6 +264,12 @@ export async function GET(req: NextRequest) {
       let leaveCount = 0;
 
       const staffConsolidated = staffList.map((staff) => {
+        const staffIdStr = staff._id.toString();
+        const mgrInfo = userManagerMap.get(staffIdStr) || {
+          managerName: staff.managerId?.name || (staff.role === "manager" ? "Direct to Leadership / Admin" : staff.role === "admin" ? "Executive Board" : "Direct / Leadership"),
+          managerEmail: staff.managerId?.email || "-",
+        };
+
         const userUpdates = attUpdates.filter((u) => u.userId.toString() === staff._id.toString());
         let sInOffice = 0;
         let sWfh = 0;
@@ -214,6 +314,8 @@ export async function GET(req: NextRequest) {
 
         return {
           employee: staff,
+          reportingManager: mgrInfo.managerName,
+          reportingManagerEmail: mgrInfo.managerEmail,
           inOfficeDays: sInOffice,
           wfhDays: sWfh,
           clientSiteDays: sClientSite,
@@ -255,9 +357,20 @@ export async function GET(req: NextRequest) {
       fileName = `VKnow-SphereX-Attendance-${granularity}-${startDateStr}.xlsx`;
     } else if (!isAdmin || reportType === "individual") {
       // Individual Report for the requested or current user
-      const targetUserDoc = targetUserId ? await User.findById(targetUserId).lean() : user;
+      const targetUserDoc: any = targetUserId ? allUsers.find((u: any) => u._id.toString() === targetUserId) || (await User.findById(targetUserId).lean()) : user;
+      const targetUserIdStr = targetUserDoc?._id?.toString() || (targetUserDoc as any)?.id || user.id;
+      const targetMgr = userManagerMap.get(targetUserIdStr) || {
+        managerName: targetUserDoc?.managerId?.name || "Direct / Leadership",
+        managerEmail: targetUserDoc?.managerId?.email || "-",
+      };
+      const enrichedUser = {
+        ...(targetUserDoc || user),
+        reportingManager: targetMgr.managerName,
+        managerEmail: targetMgr.managerEmail,
+      };
+
       excelBuffer = await buildIndividualExcel({
-        user: targetUserDoc || user,
+        user: enrichedUser,
         summary: {
           totalEstimatedHours: totalEst,
           totalLoggedHours: totalLogged,
@@ -293,6 +406,7 @@ export async function GET(req: NextRequest) {
         weeklyUpdates,
         discrepancies,
         dailyWorkUpdates,
+        teamMembers,
         periodLabel,
         generatedBy: user.name,
       });

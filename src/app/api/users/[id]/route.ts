@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { updateUserSchema } from "@/types/schemas";
 import { logAuditEvent } from "@/lib/audit";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export async function PATCH(
       role: targetUser.role,
       department: targetUser.department,
       isActive: targetUser.isActive,
+      managerId: targetUser.managerId,
     };
 
     if (validated.name !== undefined) targetUser.name = validated.name.trim();
@@ -41,6 +43,9 @@ export async function PATCH(
     if (validated.role !== undefined) targetUser.role = validated.role;
     if (validated.department !== undefined) targetUser.department = validated.department.trim();
     if (validated.isActive !== undefined) targetUser.isActive = validated.isActive;
+    if (validated.managerId !== undefined) {
+      targetUser.managerId = validated.managerId ? new (mongoose.Types.ObjectId as any)(validated.managerId) : null;
+    }
 
     if (validated.password && validated.password.trim()) {
       targetUser.password = await bcrypt.hash(validated.password.trim(), 10);

@@ -460,6 +460,7 @@ export default function AdminReportsPage() {
                 <tr>
                   <th className="py-3 px-5">Team Member</th>
                   <th className="py-3 px-5">Department</th>
+                  <th className="py-3 px-5">Reporting Manager</th>
                   <th className="py-3 px-5">Assigned Deliverables</th>
                   <th className="py-3 px-5">Estimated Hours</th>
                   <th className="py-3 px-5">Logged Hours</th>
@@ -477,11 +478,18 @@ export default function AdminReportsPage() {
                   const est = userTasks.reduce((acc: number, t: any) => acc + (t.estimatedHours || 0), 0);
                   const log = userTasks.reduce((acc: number, t: any) => acc + (t.loggedHours || 0), 0);
                   const variance = log - est;
+                  const mgrName = u.managerId?.name || (u.role === "manager" ? "Direct to Admin" : u.role === "admin" ? "Leadership" : "Direct / Leadership");
 
                   return (
                     <tr key={u._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="py-3 px-5 font-bold text-slate-900 dark:text-slate-100">{u.name}</td>
                       <td className="py-3 px-5 text-slate-500">{u.department || "Engineering"}</td>
+                      <td className="py-3 px-5">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          <Sparkles className="w-3 h-3 text-[#00b0ef]" />
+                          <span>{mgrName}</span>
+                        </span>
+                      </td>
                       <td className="py-3 px-5 font-semibold">{userTasks.length} tasks</td>
                       <td className="py-3 px-5 text-slate-500">{est} hrs</td>
                       <td className="py-3 px-5 font-semibold text-[#00b0ef]">{log} hrs</td>

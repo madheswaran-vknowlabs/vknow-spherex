@@ -57,6 +57,7 @@ export async function buildConsolidatedExcel(reportData: {
   weeklyUpdates: any[];
   discrepancies: any[];
   dailyWorkUpdates?: any[];
+  teamMembers?: any[];
   auditLogs?: any[];
   periodLabel?: string;
   generatedBy?: string;
@@ -154,7 +155,54 @@ export async function buildConsolidatedExcel(reportData: {
   autoFitColumns(projSheet);
 
   // -------------------------------------------------------------
-  // Sheet 3: Stages & Sign-offs
+  // Sheet 3: Team Hierarchy & Roster (Which employee comes under which manager)
+  // -------------------------------------------------------------
+  if (reportData.teamMembers && reportData.teamMembers.length > 0) {
+    const teamSheet = wb.addWorksheet("Team Hierarchy & Roster", {
+      views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
+    });
+
+    const tmHeaders = [
+      "Employee Name",
+      "Work Email",
+      "Department",
+      "Role / Designation",
+      "Reporting Manager",
+      "Manager Email",
+      "Direct Reports Count",
+      "Direct Reports (Team)",
+      "Assigned Tasks",
+      "Total Logged Hours",
+      "Effort Variance (Hrs)",
+      "Account Status",
+    ];
+    const tmHeaderRow = teamSheet.addRow(tmHeaders);
+    formatHeaderRow(tmHeaderRow);
+
+    reportData.teamMembers.forEach((tm: any) => {
+      const r = teamSheet.addRow([
+        tm.name || "-",
+        tm.email || "-",
+        tm.department || "Engineering",
+        tm.role?.toUpperCase() || "EMPLOYEE",
+        tm.reportingManager || "Direct / Leadership",
+        tm.managerEmail || "-",
+        tm.directReportsCount > 0 ? `${tm.directReportsCount} Members` : "-",
+        tm.directReportsList || "-",
+        tm.assignedTasksCount || 0,
+        tm.loggedHours || 0,
+        tm.varianceHours !== undefined ? tm.varianceHours : 0,
+        tm.isActive ? "Active" : "Inactive",
+      ]);
+      r.eachCell((c) => (c.border = BORDER_THIN));
+    });
+
+    teamSheet.autoFilter = { from: "A1", to: `L${reportData.teamMembers.length + 1}` };
+    autoFitColumns(teamSheet);
+  }
+
+  // -------------------------------------------------------------
+  // Sheet 4: Stages & Sign-offs
   // -------------------------------------------------------------
   const stageSheet = wb.addWorksheet("Stages", {
     views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
@@ -198,7 +246,7 @@ export async function buildConsolidatedExcel(reportData: {
   autoFitColumns(stageSheet);
 
   // -------------------------------------------------------------
-  // Sheet 4: Tasks & Deliverables
+  // Sheet 5: Tasks & Deliverables
   // -------------------------------------------------------------
   const taskSheet = wb.addWorksheet("Tasks", {
     views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
@@ -209,6 +257,7 @@ export async function buildConsolidatedExcel(reportData: {
     "Project",
     "Stage",
     "Assignee",
+    "Reporting Manager",
     "Priority",
     "Status",
     "Est. Hours",
@@ -229,6 +278,7 @@ export async function buildConsolidatedExcel(reportData: {
       t.projectId?.name || t.projectId?.code || "-",
       t.stageId?.name || "-",
       t.assigneeId?.name || "Unassigned",
+      t.assigneeManagerName || t.reportingManager || "Direct / Leadership",
       t.priority || "Medium",
       t.status,
       est,
@@ -241,11 +291,11 @@ export async function buildConsolidatedExcel(reportData: {
     r.eachCell((c) => (c.border = BORDER_THIN));
   });
 
-  taskSheet.autoFilter = { from: "A1", to: `L${reportData.tasks.length + 1}` };
+  taskSheet.autoFilter = { from: "A1", to: `M${reportData.tasks.length + 1}` };
   autoFitColumns(taskSheet);
 
   // -------------------------------------------------------------
-  // Sheet 5: Weekly Updates Log
+  // Sheet 6: Weekly Updates Log
   // -------------------------------------------------------------
   const weeklySheet = wb.addWorksheet("Weekly Updates", {
     views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
@@ -253,6 +303,7 @@ export async function buildConsolidatedExcel(reportData: {
 
   const wHeaders = [
     "Team Member",
+    "Reporting Manager",
     "Project",
     "Week Start Date",
     "Week #",
@@ -268,6 +319,7 @@ export async function buildConsolidatedExcel(reportData: {
   reportData.weeklyUpdates.forEach((w) => {
     const r = weeklySheet.addRow([
       w.userId?.name || "-",
+      w.reportingManagerName || w.reportingManager || "Direct / Leadership",
       w.projectId?.name || "-",
       w.weekStartDate ? format(new Date(w.weekStartDate), "yyyy-MM-dd") : "-",
       w.weekNumber || "-",
@@ -280,7 +332,7 @@ export async function buildConsolidatedExcel(reportData: {
     r.eachCell((c) => (c.border = BORDER_THIN));
   });
 
-  weeklySheet.autoFilter = { from: "A1", to: `I${reportData.weeklyUpdates.length + 1}` };
+  weeklySheet.autoFilter = { from: "A1", to: `J${reportData.weeklyUpdates.length + 1}` };
   autoFitColumns(weeklySheet);
 
   // -------------------------------------------------------------
@@ -338,6 +390,7 @@ export async function buildConsolidatedExcel(reportData: {
       "Email",
       "Department",
       "Role",
+      "Reporting Manager",
       "Work Location",
       "Day Type",
       "Status",
@@ -356,6 +409,7 @@ export async function buildConsolidatedExcel(reportData: {
     formatHeaderRow(dailyHeaderRow);
 
     reportData.dailyWorkUpdates.forEach((u) => {
+      const mgrName = u.reportingManagerName || u.reportingManager || "Direct / Leadership";
       if (u.tasks && u.tasks.length > 0) {
         u.tasks.forEach((t: any) => {
           const r = dailySheet.addRow([
@@ -364,6 +418,7 @@ export async function buildConsolidatedExcel(reportData: {
             u.userEmail || "-",
             u.department || "Engineering",
             u.userRole?.toUpperCase() || "-",
+            mgrName,
             u.workLocation || "In Office",
             u.dayType || "Work Day",
             u.status === "on_leave" ? "On Leave" : "Present",
@@ -387,6 +442,7 @@ export async function buildConsolidatedExcel(reportData: {
           u.userEmail || "-",
           u.department || "Engineering",
           u.userRole?.toUpperCase() || "-",
+          mgrName,
           u.workLocation || "In Office",
           u.dayType || (u.status === "on_leave" ? "Non Work Day" : "Work Day"),
           u.status === "on_leave" ? "On Leave" : "Present",
@@ -421,6 +477,7 @@ export async function buildConsolidatedExcel(reportData: {
       "Email",
       "Department",
       "Role",
+      "Reporting Manager",
       "In Office Days",
       "Work From Home Days",
       "Client Site Days",
@@ -443,6 +500,7 @@ export async function buildConsolidatedExcel(reportData: {
           email: u.userEmail || "-",
           department: u.department || "Engineering",
           role: u.userRole?.toUpperCase() || "EMPLOYEE",
+          reportingManager: u.reportingManagerName || u.reportingManager || "Direct / Leadership",
           inOffice: 0,
           wfh: 0,
           clientSite: 0,
@@ -476,6 +534,7 @@ export async function buildConsolidatedExcel(reportData: {
         emp.email,
         emp.department,
         emp.role,
+        emp.reportingManager,
         emp.inOffice,
         emp.wfh,
         emp.clientSite,
@@ -533,6 +592,10 @@ export async function buildIndividualExcel(userData: {
 
   const s = userData.summary || {};
   const metrics = [
+    ["Member Name", userData.user.name || "-"],
+    ["Department", userData.user.department || "Engineering"],
+    ["System Role", userData.user.role?.toUpperCase() || "EMPLOYEE"],
+    ["Reporting Manager", userData.user.reportingManager || userData.user.managerId?.name || "Direct / Leadership"],
     ["Assigned Tasks Count", userData.tasks.length],
     ["Completed Deliverables", userData.tasks.filter((t) => t.status === "Completed").length],
     ["In Progress Tasks", userData.tasks.filter((t) => t.status === "In Progress").length],
@@ -779,6 +842,7 @@ export async function buildAttendanceExcel(attendanceData: {
     "Email",
     "Department",
     "Role",
+    "Reporting Manager",
     "In Office",
     "Work From Home",
     "Work Days",
@@ -797,6 +861,7 @@ export async function buildAttendanceExcel(attendanceData: {
       emp.email || "-",
       emp.department || "Engineering",
       emp.role?.toUpperCase() || "EMPLOYEE",
+      staff.reportingManager || emp.reportingManager || emp.managerId?.name || "Direct / Leadership",
       staff.inOfficeDays || 0,
       staff.wfhDays || 0,
       staff.workDays || 0,
@@ -815,12 +880,13 @@ export async function buildAttendanceExcel(attendanceData: {
   // Sheet 2: Attendance Register (Day-by-Day Matrix)
   // -------------------------------------------------------------
   const matrixSheet = wb.addWorksheet("Attendance Register", {
-    views: [{ state: "frozen", xSplit: 2, ySplit: 1, showGridLines: true }],
+    views: [{ state: "frozen", xSplit: 3, ySplit: 1, showGridLines: true }],
   });
 
   const matrixHeaders = [
     "Employee Name",
     "Department",
+    "Reporting Manager",
     ...attendanceData.daysList.map((d) => {
       try {
         return format(new Date(d), "dd MMM (EEE)");
@@ -843,6 +909,7 @@ export async function buildAttendanceExcel(attendanceData: {
     const rowValues = [
       emp.name || "-",
       emp.department || "Engineering",
+      staff.reportingManager || emp.reportingManager || emp.managerId?.name || "Direct / Leadership",
       ...attendanceData.daysList.map((dayStr) => {
         const rec = recordsMap.get(dayStr);
         if (!rec) return "-";
@@ -871,6 +938,7 @@ export async function buildAttendanceExcel(attendanceData: {
     "Date",
     "Employee",
     "Department",
+    "Reporting Manager",
     "Work Location",
     "Day Type",
     "Project",
@@ -885,12 +953,14 @@ export async function buildAttendanceExcel(attendanceData: {
   formatHeaderRow(logHeaderRow);
 
   attendanceData.updates.forEach((u) => {
+    const mgrName = u.reportingManager || u.reportingManagerName || "-";
     if (u.tasks && u.tasks.length > 0) {
       u.tasks.forEach((t: any) => {
         const r = logsSheet.addRow([
           u.dateString || "-",
           u.userName || "-",
           u.department || "Engineering",
+          mgrName,
           u.workLocation || "In Office",
           u.dayType || "Work Day",
           t.projectName || "-",
@@ -908,6 +978,7 @@ export async function buildAttendanceExcel(attendanceData: {
         u.dateString || "-",
         u.userName || "-",
         u.department || "Engineering",
+        mgrName,
         u.workLocation || "In Office",
         u.dayType || (u.status === "on_leave" ? "Non Work Day" : "Work Day"),
         "-",

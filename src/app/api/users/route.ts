@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
 
     const users = await User.find(filter)
       .select("name email role department avatar isActive managerId createdBy createdAt")
+      .populate("managerId", "name email role")
       .sort({ name: 1 })
       .lean();
 
