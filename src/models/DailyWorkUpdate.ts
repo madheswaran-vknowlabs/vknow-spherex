@@ -44,7 +44,17 @@ export interface IDailyWorkUpdate extends Document {
   status: "submitted" | "on_leave" | "pending";
   workLocation: WorkLocation;
   dayType: DayType;
-  leaveType?: "Casual Leave" | "Sick Leave" | "Paid Time Off" | "Holiday" | "Other" | null;
+  leaveType?:
+    | "Casual Leave"
+    | "Sick Leave"
+    | "Earned Leave"
+    | "Maternity Leave"
+    | "Paternity Leave"
+    | "Medical Leave"
+    | "Paid Time Off"
+    | "Holiday"
+    | "Other"
+    | null;
   leaveReason?: string;
   totalHours: number;
   tasks: IDailyTaskItem[];
@@ -120,7 +130,18 @@ const DailyWorkUpdateSchema = new Schema<IDailyWorkUpdate>(
     },
     leaveType: {
       type: String,
-      enum: ["Casual Leave", "Sick Leave", "Paid Time Off", "Holiday", "Other", null],
+      enum: [
+        "Casual Leave",
+        "Sick Leave",
+        "Earned Leave",
+        "Maternity Leave",
+        "Paternity Leave",
+        "Medical Leave",
+        "Paid Time Off",
+        "Holiday",
+        "Other",
+        null,
+      ],
       default: null,
     },
     leaveReason: { type: String, default: "" },

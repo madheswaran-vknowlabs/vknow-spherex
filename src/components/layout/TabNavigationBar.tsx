@@ -18,6 +18,7 @@ import {
   X,
   Layers,
   Clock,
+  CalendarCheck2,
 } from "lucide-react";
 
 interface TabNavigationBarProps {
@@ -52,11 +53,12 @@ export function TabNavigationBar({ user }: TabNavigationBarProps) {
     localStorage.setItem("spherex_nav_collapsed", String(next));
   };
 
-  // Nav Links based on 3 distinct roles
+  // Nav Links based on 3 distinct roles (All roles have Attendance tab)
   const navLinks = isAdmin
     ? [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Daily Work Tracker", href: "/daily-update", icon: Clock },
+        { label: "Attendance & Leaves", href: "/attendance", icon: CalendarCheck2 },
         { label: "Projects & Tasks", href: "/projects", icon: FolderKanban },
         { label: "Team Reports", href: "/reports", icon: FileBarChart2 },
         { label: "Discrepancies", href: "/discrepancies", icon: AlertTriangle },
@@ -67,6 +69,7 @@ export function TabNavigationBar({ user }: TabNavigationBarProps) {
     ? [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Daily Work Tracker", href: "/daily-update", icon: Clock },
+        { label: "Attendance & Leaves", href: "/attendance", icon: CalendarCheck2 },
         { label: "Projects & Tasks", href: "/projects", icon: FolderKanban },
         { label: "Team Reports", href: "/reports", icon: FileBarChart2 },
         { label: "Discrepancies", href: "/discrepancies", icon: AlertTriangle },
@@ -74,6 +77,7 @@ export function TabNavigationBar({ user }: TabNavigationBarProps) {
       ]
     : [
         { label: "Daily Work Update", href: "/daily-update", icon: Clock },
+        { label: "Attendance & Leaves", href: "/attendance", icon: CalendarCheck2 },
         { label: "My Work", href: "/my-work", icon: CheckSquare },
         { label: "My Reports", href: "/my-reports", icon: FileBarChart2 },
       ];

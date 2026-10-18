@@ -926,8 +926,12 @@ export default function DailyUpdatePage() {
                   value={leaveType}
                   onChange={(val) => setLeaveType(val)}
                   options={[
-                    { value: "Casual Leave", label: "Casual Leave (CL)", sublabel: "Short personal or casual absence" },
-                    { value: "Sick Leave", label: "Sick Leave (SL)", sublabel: "Health and medical absence" },
+                    { value: "Casual Leave", label: "Casual Leave (CL)", sublabel: "Short personal or casual absence (Corporate standard: 12 days)" },
+                    { value: "Sick Leave", label: "Sick Leave (SL)", sublabel: "Health and medical absence (Corporate standard: 12 days)" },
+                    { value: "Earned Leave", label: "Earned Leave (EL)", sublabel: "Privilege annual leave (Corporate standard: 15 days)" },
+                    { value: "Maternity Leave", label: "Maternity Leave (ML)", sublabel: "Paid maternity support (Corporate standard: 180 days)" },
+                    { value: "Paternity Leave", label: "Paternity Leave (PL)", sublabel: "Paid paternity support (Corporate standard: 15 days)" },
+                    { value: "Medical Leave", label: "Medical Leave (MedL)", sublabel: "Extended medical or hospitalized care (Corporate standard: 15 days)" },
                     { value: "Paid Time Off", label: "Paid Time Off (PTO)", sublabel: "Planned annual vacation leave" },
                     { value: "Holiday", label: "Official Public Holiday", sublabel: "Gazetted enterprise holiday" },
                     { value: "Other", label: "Other Approved Absence", sublabel: "Approved extraordinary absence" },

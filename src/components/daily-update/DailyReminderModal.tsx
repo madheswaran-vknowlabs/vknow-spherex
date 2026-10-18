@@ -191,7 +191,11 @@ export function DailyReminderModal({ userRole, userName }: DailyReminderModalPro
                   options={[
                     { value: "Casual Leave", label: "Casual Leave (CL)", sublabel: "Short personal absence" },
                     { value: "Sick Leave", label: "Sick Leave (SL)", sublabel: "Medical absence" },
-                    { value: "Paid Time Off", label: "Paid Time Off (PTO)", sublabel: "Annual leave" },
+                    { value: "Earned Leave", label: "Earned Leave (EL)", sublabel: "Privilege leave" },
+                    { value: "Maternity Leave", label: "Maternity Leave (ML)", sublabel: "Maternity care" },
+                    { value: "Paternity Leave", label: "Paternity Leave (PL)", sublabel: "Paternity care" },
+                    { value: "Medical Leave", label: "Medical Leave (MedL)", sublabel: "Extended medical absence" },
+                    { value: "Paid Time Off", label: "Paid Time Off (PTO)", sublabel: "Annual vacation" },
                     { value: "Holiday", label: "Official Holiday", sublabel: "Public holiday" },
                     { value: "Other", label: "Other Leave", sublabel: "Approved absence" },
                   ]}
