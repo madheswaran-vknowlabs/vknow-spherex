@@ -41,6 +41,8 @@ import { format } from "date-fns";
 import { RaiseDiscrepancyModal } from "@/components/discrepancies/RaiseDiscrepancyModal";
 import { ResolveDiscrepancyModal } from "@/components/discrepancies/ResolveDiscrepancyModal";
 import { FrappeGantt, GanttItem } from "@/components/timeline/FrappeGantt";
+import { CoolDropdown } from "@/components/ui/cool-select";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function ProjectDetailPage({
   params,
@@ -713,20 +715,22 @@ export default function ProjectDetailPage({
           {/* Quick status selector */}
           <div className="space-y-1">
             <Label className="text-xs">Stage Status</Label>
-            <select
+            <CoolDropdown
+              fullWidth
+              size="sm"
               value={currentSelectedStage.status}
-              onChange={(e) => handleUpdateStage({ status: e.target.value })}
-              className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200"
-            >
-              <option value="Not Started">Not Started</option>
-              <option value="In Progress">In Progress</option>
-              <option value="On Hold">On Hold</option>
-              <option value="Blocked">Blocked</option>
-              <option value="Completed">Completed (Ready for Sign-Off)</option>
-              {currentSelectedStage.status === "Approved" && (
-                <option value="Approved">Approved (Signed Off)</option>
-              )}
-            </select>
+              onChange={(val) => handleUpdateStage({ status: val })}
+              options={[
+                { value: "Not Started", label: "Not Started", badge: "0%" },
+                { value: "In Progress", label: "In Progress", badge: "Active", badgeVariant: "cyan" },
+                { value: "On Hold", label: "On Hold", badge: "Paused", badgeVariant: "amber" },
+                { value: "Blocked", label: "Blocked", badge: "Critical", badgeVariant: "rose" },
+                { value: "Completed", label: "Completed (Ready for Sign-Off)", badge: "Review", badgeVariant: "emerald" },
+                ...(currentSelectedStage.status === "Approved"
+                  ? [{ value: "Approved", label: "Approved (Signed Off)", badge: "Locked", badgeVariant: "emerald" as const }]
+                  : []),
+              ]}
+            />
           </div>
 
           {/* Progress Slider */}
@@ -748,18 +752,23 @@ export default function ProjectDetailPage({
           {/* Stage Owner */}
           <div className="space-y-1">
             <Label className="text-xs">Stage Owner</Label>
-            <select
+            <CoolDropdown
+              fullWidth
+              size="sm"
+              searchable
               value={currentSelectedStage.ownerId?._id || ""}
-              onChange={(e) => handleUpdateStage({ ownerId: e.target.value || null })}
-              className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200"
-            >
-              <option value="">-- Unassigned --</option>
-              {activeUsers.map((u) => (
-                <option key={u._id} value={u._id}>
-                  {u.name} ({u.department || u.role})
-                </option>
-              ))}
-            </select>
+              onChange={(val) => handleUpdateStage({ ownerId: val || null })}
+              placeholder="-- Unassigned --"
+              options={[
+                { value: "", label: "-- Unassigned --" },
+                ...activeUsers.map((u) => ({
+                  value: u._id,
+                  label: u.name,
+                  sublabel: u.department || u.role,
+                  badge: u.role?.toUpperCase(),
+                })),
+              ]}
+            />
           </div>
 
           {/* Planned Dates */}
@@ -916,6 +925,12 @@ export default function ProjectDetailPage({
                               </>
                             )}
                           </div>
+
+                          {t.description && (
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                              {t.description}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -1118,96 +1133,174 @@ export default function ProjectDetailPage({
         </div>
       )}
 
-      {/* Add Task Modal */}
+      {/* Add Deliverable Task Modal (Spacious Visual Box with Description, CoolDropdown, DatePicker) */}
       {isTaskModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Add Deliverable Task to {currentSelectedStage.name}
-              </h3>
-              <button onClick={() => setIsTaskModalOpen(false)}>
-                <X className="w-4 h-4 text-slate-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-3xl p-6 sm:p-7 space-y-5 my-8 max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase font-extrabold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2.5 py-0.5 rounded-full">
+                    Stage {currentSelectedStage.order} &bull; {currentSelectedStage.name}
+                  </span>
+                  <Badge variant="cyan" className="text-[9px] uppercase font-bold">
+                    Deliverable Item
+                  </Badge>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Add Deliverable Task to {currentSelectedStage.name}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Configure task specifications, assign member ownership, define start &amp; due dates, and map predecessor dependencies.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTaskModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateTask} className="space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Task Title *</Label>
-                <Input
-                  placeholder="e.g. Build PWA Service Worker Cache"
-                  value={taskTitle}
-                  onChange={(e) => setTaskTitle(e.target.value)}
-                  required
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleCreateTask} className="space-y-4">
+              {/* Card 1: Task Title & Description */}
+              <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800 space-y-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">Assignee</Label>
-                  <select
-                    value={taskAssignee}
-                    onChange={(e) => setTaskAssignee(e.target.value)}
-                    className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs bg-white dark:bg-slate-900"
-                  >
-                    <option value="">-- Select Member --</option>
-                    {activeUsers.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Priority</Label>
-                  <select
-                    value={taskPriority}
-                    onChange={(e: any) => setTaskPriority(e.target.value)}
-                    className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs bg-white dark:bg-slate-900"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Est. Hours</Label>
+                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Task Title <span className="text-rose-500">*</span>
+                  </Label>
                   <Input
-                    type="number"
-                    min="1"
-                    value={taskEstHours}
-                    onChange={(e) => setTaskEstHours(Number(e.target.value))}
-                    className="h-8 text-xs"
+                    placeholder={`e.g. ${currentSelectedStage.name === "Design" ? "Design High-Fidelity UI System & Component Library" : "Build Core Architecture & Test Suite"}`}
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    required
+                    className="h-10 text-xs sm:text-sm font-medium rounded-xl"
                   />
                 </div>
+
+                {/* Deliverable Task Description */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Due Date</Label>
-                  <Input
-                    type="date"
-                    value={taskEndDate}
-                    onChange={(e) => setTaskEndDate(e.target.value)}
-                    className="h-8 text-xs"
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Deliverable Description &amp; Technical Scope
+                    </Label>
+                    <span className="text-[10px] text-slate-400 font-normal">
+                      Acceptance criteria &amp; specifications
+                    </span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    placeholder="Provide a clear description of the expected output, acceptance criteria, design links, technical constraints, or deliverables required to mark this task complete..."
+                    value={taskDesc}
+                    onChange={(e) => setTaskDesc(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#00b0ef]/30 focus:border-[#00b0ef] transition-all resize-y min-h-[80px]"
                   />
                 </div>
               </div>
 
-              {/* Task Dependency Picker */}
+              {/* Card 2: Ownership & Prioritization */}
+              <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Assignee</Label>
+                    <CoolDropdown
+                      fullWidth
+                      searchable
+                      value={taskAssignee}
+                      onChange={setTaskAssignee}
+                      placeholder="-- Select Assignee --"
+                      options={[
+                        { value: "", label: "-- Unassigned --" },
+                        ...activeUsers.map((u) => ({
+                          value: u._id,
+                          label: u.name,
+                          sublabel: u.department || u.role,
+                          badge: u.role?.toUpperCase(),
+                        })),
+                      ]}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Priority Level</Label>
+                    <CoolDropdown
+                      fullWidth
+                      value={taskPriority}
+                      onChange={(val: any) => setTaskPriority(val)}
+                      options={[
+                        { value: "Low", label: "Low Priority", badge: "Low", badgeVariant: "default" },
+                        { value: "Medium", label: "Medium Priority", badge: "Normal", badgeVariant: "cyan" },
+                        { value: "High", label: "High Priority", badge: "High", badgeVariant: "amber" },
+                        { value: "Urgent", label: "Urgent Priority", badge: "Critical", badgeVariant: "rose" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Timeline & Effort (With DatePicker) */}
+              <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Planned Start Date</Label>
+                    <DatePicker
+                      value={taskStartDate}
+                      onChange={setTaskStartDate}
+                      placeholder="YYYY-MM-DD"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Due Date</Label>
+                    <DatePicker
+                      value={taskEndDate}
+                      onChange={setTaskEndDate}
+                      placeholder="YYYY-MM-DD"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Est. Hours</Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={taskEstHours}
+                        onChange={(e) => setTaskEstHours(Number(e.target.value))}
+                        className="h-9 text-xs rounded-xl pr-8 font-semibold"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold pointer-events-none">
+                        hrs
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Task Dependencies (Blocked By) */}
               {tasks.length > 0 && (
-                <div className="space-y-1">
-                  <Label className="text-xs">Blocked By (Dependencies)</Label>
-                  <div className="max-h-24 overflow-y-auto p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-1">
+                <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Predecessor Dependencies (Blocked By)
+                    </Label>
+                    <span className="text-[10px] text-slate-400">
+                      {taskBlockedBy.length} selected
+                    </span>
+                  </div>
+                  <div className="max-h-32 overflow-y-auto p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {tasks.map((t: any) => {
                       const isChecked = taskBlockedBy.includes(t._id);
                       return (
                         <label
                           key={t._id}
-                          className="flex items-center gap-2 text-[11px] cursor-pointer hover:text-[#00b0ef]"
+                          className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors border ${
+                            isChecked
+                              ? "bg-[#e0f6fd]/50 dark:bg-[#00b0ef]/10 border-[#00b0ef]/50 font-semibold text-[#007ea8] dark:text-[#00b0ef]"
+                              : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300"
+                          }`}
                         >
                           <input
                             type="checkbox"
@@ -1216,7 +1309,7 @@ export default function ProjectDetailPage({
                               if (e.target.checked) setTaskBlockedBy([...taskBlockedBy, t._id]);
                               else setTaskBlockedBy(taskBlockedBy.filter((tid) => tid !== t._id));
                             }}
-                            className="rounded accent-[#00b0ef]"
+                            className="rounded accent-[#00b0ef] shrink-0"
                           />
                           <span className="truncate">{t.title}</span>
                         </label>
@@ -1226,23 +1319,29 @@ export default function ProjectDetailPage({
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
                   onClick={() => setIsTaskModalOpen(false)}
-                  className="h-8 text-xs"
+                  className="h-9 px-4 text-xs font-semibold rounded-xl"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  size="sm"
                   disabled={creatingTask}
-                  className="bg-[#00b0ef] hover:bg-[#009ad4] text-white h-8 text-xs font-bold"
+                  className="bg-[#00b0ef] hover:bg-[#009ad4] text-white h-9 px-5 text-xs font-bold rounded-xl shadow-xs"
                 >
-                  {creatingTask ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save Task"}
+                  {creatingTask ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                      <span>Saving Deliverable...</span>
+                    </>
+                  ) : (
+                    "Save Deliverable Task"
+                  )}
                 </Button>
               </div>
             </form>
@@ -1285,16 +1384,18 @@ export default function ProjectDetailPage({
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Status</Label>
-                  <select
+                  <CoolDropdown
+                    fullWidth
+                    size="sm"
                     value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs bg-white dark:bg-slate-900"
-                  >
-                    <option value="Planning">Planning</option>
-                    <option value="Active">Active</option>
-                    <option value="On Hold">On Hold</option>
-                    <option value="Completed">Completed</option>
-                  </select>
+                    onChange={setEditStatus}
+                    options={[
+                      { value: "Planning", label: "Planning", badge: "Draft" },
+                      { value: "Active", label: "Active", badge: "Running", badgeVariant: "cyan" },
+                      { value: "On Hold", label: "On Hold", badge: "Paused", badgeVariant: "amber" },
+                      { value: "Completed", label: "Completed", badge: "Done", badgeVariant: "emerald" },
+                    ]}
+                  />
                 </div>
               </div>
 

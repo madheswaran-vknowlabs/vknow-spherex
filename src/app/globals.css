@@ -112,11 +112,25 @@ select {
   padding-right: 2.25rem !important;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
+  border-radius: 0.75rem;
 }
 
 select:focus {
   outline: none;
   border-color: #00b0ef !important;
   box-shadow: 0 0 0 3px rgba(0, 176, 239, 0.18) !important;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+}
+
+.dark select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 8px 12px;
 }
 

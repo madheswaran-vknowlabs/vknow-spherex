@@ -15,7 +15,7 @@ export function VKnowLogo({
   variant = "default",
 }: VKnowLogoProps) {
   const dimensions = {
-    sm: { width: 28, height: 28, text: "text-lg", sub: "text-[10px]" },
+    sm: { width: 24, height: 24, text: "text-sm", sub: "text-[9px]" },
     md: { width: 36, height: 36, text: "text-xl", sub: "text-xs" },
     lg: { width: 48, height: 48, text: "text-2xl", sub: "text-sm" },
     xl: { width: 64, height: 64, text: "text-3xl", sub: "text-base" },

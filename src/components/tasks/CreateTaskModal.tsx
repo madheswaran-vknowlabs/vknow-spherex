@@ -21,6 +21,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { addDays, format } from "date-fns";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface AssignedProject {
   _id: string;
@@ -329,29 +330,23 @@ export function CreateTaskModal({
             </div>
           </div>
 
-          {/* Dates & Hours */}
+          {/* Dates & Hours (Modern DatePicker) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Planned Start Date</Label>
-              <Input
-                type="date"
-                required
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-11 text-sm rounded-xl font-medium"
-              />
-            </div>
+            <DatePicker
+              label="Planned Start Date"
+              required
+              value={startDate}
+              onChange={setStartDate}
+              placeholder="YYYY-MM-DD"
+            />
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Planned End Date</Label>
-              <Input
-                type="date"
-                required
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="h-11 text-sm rounded-xl font-medium"
-              />
-            </div>
+            <DatePicker
+              label="Planned End Date"
+              required
+              value={endDate}
+              onChange={setEndDate}
+              placeholder="YYYY-MM-DD"
+            />
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Estimated Hours</Label>

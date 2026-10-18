@@ -27,6 +27,7 @@ import {
 import { addMonths, format } from "date-fns";
 import { DEFAULT_STAGES } from "@/types/models";
 import { generateProjectCode } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface UserOption {
   _id: string;
@@ -317,34 +318,22 @@ export function CreateProjectModal({ onSuccess }: CreateProjectModalProps) {
                 />
               </div>
 
-              {/* 4. Planned Dates */}
+              {/* 4. Planned Dates (Modern DatePicker) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="start-date" className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Planned Start Date <span className="text-rose-500">*</span>
-                  </Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    required
-                    className="h-11 text-sm rounded-xl font-medium"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="end-date" className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Planned Delivery Date <span className="text-rose-500">*</span>
-                  </Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required
-                    className="h-11 text-sm rounded-xl font-medium"
-                  />
-                </div>
+                <DatePicker
+                  label="Planned Start Date"
+                  required
+                  value={startDate}
+                  onChange={setStartDate}
+                  placeholder="YYYY-MM-DD"
+                />
+                <DatePicker
+                  label="Planned Delivery Date"
+                  required
+                  value={endDate}
+                  onChange={setEndDate}
+                  placeholder="YYYY-MM-DD"
+                />
               </div>
 
               {/* 5. Assigned Members - Searchable Dropdown Selector */}
