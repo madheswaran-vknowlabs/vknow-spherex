@@ -110,7 +110,7 @@ export default async function DashboardLayout({
         <TabNavigationBar user={user} />
 
         {/* Page Content View */}
-        <main className="flex-1 min-w-0 px-3 sm:px-6 lg:px-8 py-5 pb-20 md:pb-6">
+        <main className="flex-1 min-w-0 px-2 sm:px-4 lg:px-5 py-4 pb-20 md:pb-6">
           {children}
         </main>
       </div>

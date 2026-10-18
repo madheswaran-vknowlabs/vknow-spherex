@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { format, subDays, addDays, parseISO, isToday, isYesterday } from "date-fns";
 import {
@@ -19,6 +19,8 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Filter,
   Users,
   Briefcase,
@@ -105,6 +107,15 @@ export default function DailyUpdatePage() {
   const [activeTab, setActiveTab] = useState<"tracker" | "attendance">("tracker");
   const [attendancePeriod, setAttendancePeriod] = useState<"day" | "week" | "month">("week");
   const [attendanceSearch, setAttendanceSearch] = useState<string>("");
+
+  // Dense Table filter & state for Daily Tracker & Review
+  const [denseSearch, setDenseSearch] = useState<string>("");
+  const [denseStatusFilter, setDenseStatusFilter] = useState<"ALL" | "submitted" | "on_leave" | "pending">("ALL");
+  const [expandedDoubts, setExpandedDoubts] = useState<Record<string, boolean>>({});
+
+  const toggleDoubtRow = (taskId: string) => {
+    setExpandedDoubts((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
+  };
 
   // New Task Inline Entry Inputs
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -365,8 +376,141 @@ export default function DailyUpdatePage() {
 
   const totalLoggedToday = tasksList.reduce((sum, t) => sum + (parseFloat(t.hours) || 0), 0);
 
+  // Flatten team members and their tasks into dense table rows
+  const flattenedTrackerRows = useMemo(() => {
+    if (!data?.team || !Array.isArray(data.team)) return [];
+
+    const rows: Array<{
+      rowKey: string;
+      empId: string;
+      empName: string;
+      empEmail: string;
+      empDepartment: string;
+      status: "submitted" | "on_leave" | "pending";
+      workLocation?: string;
+      dayType?: string;
+      totalHours?: number;
+      generalNotes?: string;
+      updateId?: string;
+      taskId?: string;
+      projectName?: string;
+      stageName?: string;
+      taskTitle?: string;
+      taskDescription?: string;
+      startTime?: string;
+      endTime?: string;
+      hours?: string | number;
+      taskStatus?: string;
+      doubts?: any[];
+      taskIndex?: number;
+      totalTasksForEmp?: number;
+      leaveType?: string;
+      leaveReason?: string;
+    }> = [];
+
+    data.team.forEach((memberObj: any) => {
+      const emp = memberObj.employee || {};
+      const update = memberObj.update;
+      const status = memberObj.status || "pending";
+
+      if (status === "submitted" && update?.tasks && update.tasks.length > 0) {
+        update.tasks.forEach((task: any, idx: number) => {
+          rows.push({
+            rowKey: `${emp._id || emp.email || "emp"}-${task._id || idx}`,
+            empId: emp._id || "",
+            empName: emp.name || "Unknown",
+            empEmail: emp.email || "",
+            empDepartment: emp.department || "Engineering",
+            status: "submitted",
+            workLocation: update.workLocation || "In Office",
+            dayType: update.dayType || "Work Day",
+            totalHours: update.totalHours || 0,
+            generalNotes: update.generalNotes || "",
+            updateId: update._id,
+            taskId: task._id || String(idx),
+            projectName: task.projectName || "General",
+            stageName: task.stageName || "",
+            taskTitle: task.title || "Task",
+            taskDescription: task.description || "",
+            startTime: task.startTime || "",
+            endTime: task.endTime || "",
+            hours: task.hours || 0,
+            taskStatus: task.taskStatus || "Completed",
+            doubts: task.doubts || [],
+            taskIndex: idx,
+            totalTasksForEmp: update.tasks.length,
+          });
+        });
+      } else if (status === "on_leave") {
+        rows.push({
+          rowKey: `${emp._id || emp.email || "emp"}-leave`,
+          empId: emp._id || "",
+          empName: emp.name || "Unknown",
+          empEmail: emp.email || "",
+          empDepartment: emp.department || "Engineering",
+          status: "on_leave",
+          leaveType: update?.leaveType || "Casual Leave",
+          leaveReason: update?.leaveReason || "Personal Leave",
+          totalHours: 0,
+          updateId: update?._id,
+        });
+      } else {
+        rows.push({
+          rowKey: `${emp._id || emp.email || "emp"}-pending`,
+          empId: emp._id || "",
+          empName: emp.name || "Unknown",
+          empEmail: emp.email || "",
+          empDepartment: emp.department || "Engineering",
+          status: "pending",
+          totalHours: 0,
+          generalNotes: update?.generalNotes || "",
+        });
+      }
+    });
+
+    return rows;
+  }, [data?.team]);
+
+  // Filter flattened rows by search text & status KPI
+  const filteredTrackerRows = useMemo(() => {
+    return flattenedTrackerRows.filter((row) => {
+      if (denseStatusFilter !== "ALL" && row.status !== denseStatusFilter) {
+        return false;
+      }
+
+      if (denseSearch.trim()) {
+        const q = denseSearch.toLowerCase().trim();
+        const matchesName = row.empName.toLowerCase().includes(q);
+        const matchesDept = row.empDepartment.toLowerCase().includes(q);
+        const matchesEmail = row.empEmail.toLowerCase().includes(q);
+        const matchesProject = (row.projectName || "").toLowerCase().includes(q);
+        const matchesStage = (row.stageName || "").toLowerCase().includes(q);
+        const matchesTask = (row.taskTitle || "").toLowerCase().includes(q);
+        const matchesDesc = (row.taskDescription || "").toLowerCase().includes(q);
+        const matchesReason = (row.leaveReason || "").toLowerCase().includes(q);
+        const matchesNotes = (row.generalNotes || "").toLowerCase().includes(q);
+
+        if (
+          !matchesName &&
+          !matchesDept &&
+          !matchesEmail &&
+          !matchesProject &&
+          !matchesStage &&
+          !matchesTask &&
+          !matchesDesc &&
+          !matchesReason &&
+          !matchesNotes
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [flattenedTrackerRows, denseStatusFilter, denseSearch]);
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 w-full pb-16">
       {/* ========================================================= */}
       {/* TOP HEADER & DATE NAVIGATOR (COMMON ACROSS ALL ROLES)      */}
       {/* ========================================================= */}
@@ -1020,7 +1164,7 @@ export default function DailyUpdatePage() {
             </div>
 
             {/* Attendance Mode Period Selector & Export */}
-            {activeTab === "attendance" && (
+            {activeTab === "attendance" ? (
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
                   {(["day", "week", "month"] as const).map((p) => (
@@ -1051,6 +1195,13 @@ export default function DailyUpdatePage() {
                   <Download className="w-3.5 h-3.5" />
                   <span>Export Attendance Excel</span>
                 </Button>
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center gap-2 pr-1">
+                <span className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold bg-slate-50 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                  <Sparkles className="w-3.5 h-3.5 text-[#00b0ef]" />
+                  <span>End-of-Day Deliverables Review</span>
+                </span>
               </div>
             )}
           </div>
@@ -1366,237 +1517,468 @@ export default function DailyUpdatePage() {
             /* ========================================================= */
             /* TAB 2: DAILY TRACKER & TASK REVIEW (SINGLE DAY DRILLDOWN) */
             /* ========================================================= */
-            <div className="space-y-6">
-              {/* Summary Metric KPI Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            <div className="space-y-4">
+              {/* Summary Metric KPI Cards (Interactive Filters) */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDenseStatusFilter("ALL")}
+                  className={`p-3.5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all cursor-pointer ${
+                    denseStatusFilter === "ALL"
+                      ? "border-[#00b0ef] ring-2 ring-[#00b0ef]/30 shadow-md"
+                      : "border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                  }`}
+                >
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                     Total Team
                   </span>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white">
-                    {data?.summary?.totalMembers || 0}
+                  <div className="text-2xl font-black text-slate-900 dark:text-white flex items-baseline justify-between">
+                    <span>{data?.summary?.totalMembers || 0}</span>
+                    <span className="text-[10px] font-semibold text-slate-400">All</span>
                   </div>
-                </div>
+                </button>
 
-                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">
+                <button
+                  type="button"
+                  onClick={() => setDenseStatusFilter("submitted")}
+                  className={`p-3.5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all cursor-pointer ${
+                    denseStatusFilter === "submitted"
+                      ? "border-emerald-500 ring-2 ring-emerald-500/30 shadow-md"
+                      : "border-slate-200/90 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700"
+                  }`}
+                >
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-0.5">
                     Submitted
                   </span>
-                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                    {data?.summary?.submittedCount || 0}
+                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 flex items-baseline justify-between">
+                    <span>{data?.summary?.submittedCount || 0}</span>
+                    <span className="text-[10px] font-semibold text-emerald-500">Logged</span>
                   </div>
-                </div>
+                </button>
 
-                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 block mb-1">
+                <button
+                  type="button"
+                  onClick={() => setDenseStatusFilter("on_leave")}
+                  className={`p-3.5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all cursor-pointer ${
+                    denseStatusFilter === "on_leave"
+                      ? "border-purple-500 ring-2 ring-purple-500/30 shadow-md"
+                      : "border-slate-200/90 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700"
+                  }`}
+                >
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 block mb-0.5">
                     On Leave
                   </span>
-                  <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-                    {data?.summary?.leaveCount || 0}
+                  <div className="text-2xl font-black text-purple-600 dark:text-purple-400 flex items-baseline justify-between">
+                    <span>{data?.summary?.leaveCount || 0}</span>
+                    <span className="text-[10px] font-semibold text-purple-500">Away</span>
                   </div>
-                </div>
+                </button>
 
-                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-500 block mb-1">
+                <button
+                  type="button"
+                  onClick={() => setDenseStatusFilter("pending")}
+                  className={`p-3.5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all cursor-pointer ${
+                    denseStatusFilter === "pending"
+                      ? "border-amber-500 ring-2 ring-amber-500/30 shadow-md"
+                      : "border-slate-200/90 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-700"
+                  }`}
+                >
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-500 block mb-0.5">
                     Pending Log
                   </span>
-                  <div className="text-2xl font-black text-amber-500">
-                    {data?.summary?.pendingCount || 0}
+                  <div className="text-2xl font-black text-amber-500 flex items-baseline justify-between">
+                    <span>{data?.summary?.pendingCount || 0}</span>
+                    <span className="text-[10px] font-semibold text-amber-500">Unsubmitted</span>
                   </div>
-                </div>
+                </button>
 
-                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs col-span-2 sm:col-span-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#00b0ef] block mb-1">
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 col-span-2 sm:col-span-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#00b0ef] block mb-0.5">
                     Total Hours
                   </span>
-                  <div className="text-2xl font-black text-[#00b0ef]">
-                    {data?.summary?.totalHours || 0}h
+                  <div className="text-2xl font-black text-[#00b0ef] flex items-baseline justify-between">
+                    <span>{data?.summary?.totalHours || 0}h</span>
+                    <span className="text-[10px] font-semibold text-slate-400">Team Effort</span>
                   </div>
                 </div>
               </div>
 
-              {/* Team Member Daily Reports List */}
-              <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <div className="flex items-center gap-2">
+              {/* Team Member Daily Reports - DENSE TABLE */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3.5 w-full">
+                {/* Search Bar & Table Header Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3.5">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Users className="w-4 h-4 text-[#00b0ef]" />
-                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                      Team Daily Progress for {format(parseISO(selectedDate), "dd MMMM yyyy")}
+                    <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                      Team Daily Deliverables Review
                     </h3>
+                    <Badge variant="cyan" className="text-[10px] font-bold px-2 py-0.5">
+                      Dense Table
+                    </Badge>
+                    <span className="text-xs text-slate-400 font-medium hidden md:inline">
+                      • {format(parseISO(selectedDate), "dd MMMM yyyy")}
+                    </span>
                   </div>
-                  <span className="text-xs text-slate-400">
-                    Click &quot;Raise Doubt&quot; on any task to notify the employee
-                  </span>
+
+                  <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                    {/* Live Search Input */}
+                    <div className="relative min-w-[240px] sm:w-72">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search employee, dept, project, task..."
+                        value={denseSearch}
+                        onChange={(e) => setDenseSearch(e.target.value)}
+                        className="w-full pl-8.5 pr-6 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#00b0ef] outline-hidden text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                      />
+                      {denseSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setDenseSearch("")}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Status Clear Filter Tag */}
+                    {denseStatusFilter !== "ALL" && (
+                      <button
+                        type="button"
+                        onClick={() => setDenseStatusFilter("ALL")}
+                        className="px-2.5 py-1 text-xs font-bold text-[#00b0ef] bg-[#00b0ef]/10 hover:bg-[#00b0ef]/20 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        Status: {denseStatusFilter.toUpperCase()} &times;
+                      </button>
+                    )}
+
+                    <span className="text-xs text-slate-400 whitespace-nowrap font-medium">
+                      {filteredTrackerRows.length} {filteredTrackerRows.length === 1 ? "row" : "rows"}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  {data?.team?.map((memberObj: any) => {
-                    const emp = memberObj.employee;
-                    const update = memberObj.update;
-                    const status = memberObj.status;
-
-                    return (
-                      <div
-                        key={emp._id}
-                        className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3.5"
+                {/* Dense Table View */}
+                {filteredTrackerRows.length === 0 ? (
+                  <div className="py-12 text-center space-y-2">
+                    <Clock className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                      No team deliverables match your current filter or search criteria.
+                    </p>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setDenseSearch("");
+                          setDenseStatusFilter("ALL");
+                        }}
+                        className="text-xs rounded-xl"
                       >
-                        {/* Header: Employee Info & Status Badge */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#00b0ef] to-[#007ea8] text-white font-black text-sm flex items-center justify-center shadow-xs">
-                              {emp.name.charAt(0)}
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                                {emp.name}
-                              </h4>
-                              <span className="text-xs text-slate-500">
-                                {emp.email} • {emp.department || "Engineering"}
-                              </span>
-                            </div>
-                          </div>
+                        Reset Filters
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full overflow-x-auto rounded-2xl border border-slate-200/90 dark:border-slate-800">
+                    <table className="w-full text-left text-xs whitespace-nowrap divide-y divide-slate-200/90 dark:divide-slate-800">
+                      <thead className="bg-slate-50/90 dark:bg-slate-800/80 text-[10px] uppercase font-black tracking-wider text-slate-500 dark:text-slate-400 select-none">
+                        <tr>
+                          <th scope="col" className="py-2 px-2 text-center w-8">#</th>
+                          <th scope="col" className="py-2 px-2.5 min-w-[145px]">Employee & Dept</th>
+                          <th scope="col" className="py-2 px-2.5 min-w-[125px]">Attendance & Mode</th>
+                          <th scope="col" className="py-2 px-2.5 min-w-[105px]">Project</th>
+                          <th scope="col" className="py-2 px-2.5 min-w-[95px]">Stage / Module</th>
+                          <th scope="col" className="py-2 px-2.5 min-w-[180px] max-w-[280px]">Deliverable / Task</th>
+                          <th scope="col" className="py-2 px-2.5 text-center min-w-[105px]">Time Window</th>
+                          <th scope="col" className="py-2 px-2 text-center min-w-[55px]">Hours</th>
+                          <th scope="col" className="py-2 px-2 text-center min-w-[80px]">Status</th>
+                          <th scope="col" className="py-2 px-2 text-center min-w-[80px]">Doubts</th>
+                          <th scope="col" className="py-2 px-2.5 text-right min-w-[95px]">Review Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900">
+                        {filteredTrackerRows.map((row, idx) => {
+                          const isExpanded = !!expandedDoubts[row.taskId || ""];
+                          const hasDoubts = !!(row.doubts && row.doubts.length > 0);
+                          const hasOpenDoubts = hasDoubts && row.doubts!.some((d: any) => d.status !== "resolved");
 
-                          <div>
-                            {status === "submitted" ? (
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="cyan" className="font-extrabold text-xs px-3 py-1 flex items-center gap-1.5">
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>SUBMITTED ({update?.totalHours}h Logged)</span>
-                                </Badge>
-                                <Badge variant="outline" className="font-bold text-[11px] px-2 py-0.5 border-sky-300 text-sky-700 dark:text-sky-300 flex items-center gap-1">
-                                  {update?.workLocation === "Work From Home" ? <Home className="w-3 h-3 text-sky-500" /> : <Building2 className="w-3 h-3 text-sky-500" />}
-                                  <span>{update?.workLocation || "In Office"}</span>
-                                </Badge>
-                                <Badge variant="outline" className="font-bold text-[11px] px-2 py-0.5 border-purple-300 text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                                  <CalendarDays className="w-3 h-3 text-purple-500" />
-                                  <span>{update?.dayType || "Work Day"}</span>
-                                </Badge>
-                              </div>
-                            ) : status === "on_leave" ? (
-                              <Badge className="font-extrabold text-xs px-3 py-1 bg-purple-500 text-white flex items-center gap-1.5">
-                                <Palmtree className="w-3.5 h-3.5" />
-                                <span>ON LEAVE: {update?.leaveType}</span>
-                              </Badge>
-                            ) : (
-                              <Badge className="font-extrabold text-xs px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5" />
-                                <span>PENDING UPDATE</span>
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
+                          return (
+                            <React.Fragment key={row.rowKey}>
+                              <tr className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                {/* 1. Row Index */}
+                                <td className="py-2 px-2 text-center font-mono text-slate-400 font-bold text-[11px] w-8">
+                                  {idx + 1}
+                                </td>
 
-                        {/* Content: Tasks breakdown or leave reason */}
-                        {status === "on_leave" ? (
-                          <div className="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 text-xs text-purple-900 dark:text-purple-200">
-                            <strong>Reason:</strong> {update?.leaveReason || "Personal Leave"}
-                          </div>
-                        ) : status === "submitted" && update?.tasks?.length > 0 ? (
-                          <div className="space-y-2.5 pl-2 sm:pl-4">
-                            {update.tasks.map((task: any, tIdx: number) => (
-                              <div
-                                key={task._id || tIdx}
-                                className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2"
-                              >
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant="outline" className="font-bold text-[10px] text-[#00b0ef]">
-                                      {task.projectName}
-                                    </Badge>
-                                    {task.stageName && (
-                                      <Badge variant="secondary" className="font-bold text-[10px]">
-                                        {task.stageName}
-                                      </Badge>
-                                    )}
-                                    <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
-                                      {task.title}
-                                    </span>
-                                  </div>
-
+                                {/* 2. Employee Info */}
+                                <td className="py-2 px-2.5 min-w-[145px]">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                      {task.startTime} – {task.endTime} ({task.hours}h)
-                                    </span>
+                                    <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#00b0ef] to-[#007ea8] text-white font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+                                      {(row.empName || "U").charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="leading-tight truncate max-w-[140px]">
+                                      <div className="font-extrabold text-slate-900 dark:text-white truncate" title={row.empName}>
+                                        {row.empName}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 truncate" title={row.empEmail}>
+                                        {row.empDepartment || "Engineering"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
 
-                                    <Badge variant="default" className="text-[10px]">
-                                      {task.taskStatus}
+                                {/* 3. Attendance & Mode */}
+                                <td className="py-2 px-2.5 min-w-[125px]">
+                                  {row.status === "submitted" ? (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span
+                                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                          row.workLocation === "Work From Home"
+                                            ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+                                            : "bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800"
+                                        }`}
+                                      >
+                                        {row.workLocation === "Work From Home" ? (
+                                          <Home className="w-2.5 h-2.5" />
+                                        ) : (
+                                          <Building2 className="w-2.5 h-2.5" />
+                                        )}
+                                        <span>{row.workLocation === "Work From Home" ? "WFH" : "Office"}</span>
+                                      </span>
+                                      {row.dayType && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                          {row.dayType}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : row.status === "on_leave" ? (
+                                    <Badge className="font-extrabold text-[10px] px-2 py-0.5 bg-purple-500 text-white flex items-center gap-1">
+                                      <Palmtree className="w-3 h-3" />
+                                      <span>ON LEAVE: {row.leaveType}</span>
                                     </Badge>
+                                  ) : (
+                                    <Badge className="font-extrabold text-[10px] px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      <span>PENDING LOG</span>
+                                    </Badge>
+                                  )}
+                                </td>
 
-                                    {/* Manager: Raise Doubt Button */}
+                                {/* 4. Project */}
+                                <td className="py-2 px-2.5 min-w-[105px]">
+                                  {row.status === "submitted" && row.projectName ? (
+                                    <Badge variant="outline" className="font-bold text-[10px] text-[#00b0ef] border-sky-300/80 dark:border-sky-700 flex items-center gap-1 w-fit">
+                                      <Briefcase className="w-2.5 h-2.5 text-[#00b0ef]" />
+                                      <span className="truncate max-w-[100px]" title={row.projectName}>{row.projectName}</span>
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-slate-400 text-xs">—</span>
+                                  )}
+                                </td>
+
+                                {/* 5. Stage / Module */}
+                                <td className="py-2 px-2.5 min-w-[95px]">
+                                  {row.stageName ? (
+                                    <Badge variant="secondary" className="font-semibold text-[10px] text-slate-700 dark:text-slate-300 flex items-center gap-1 w-fit">
+                                      <Layers className="w-2.5 h-2.5 text-slate-400" />
+                                      <span className="truncate max-w-[90px]" title={row.stageName}>{row.stageName}</span>
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-slate-400 text-xs">—</span>
+                                  )}
+                                </td>
+
+                                {/* 6. Deliverable / Task */}
+                                <td className="py-2 px-2.5 min-w-[180px] max-w-[280px]">
+                                  {row.status === "submitted" ? (
+                                    <div className="space-y-0.5">
+                                      <div className="font-bold text-slate-800 dark:text-slate-100 text-xs truncate" title={row.taskTitle}>
+                                        {row.taskTitle}
+                                      </div>
+                                      {row.taskDescription && (
+                                        <div className="text-[11px] text-slate-400 truncate max-w-[260px]" title={row.taskDescription}>
+                                          {row.taskDescription}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : row.status === "on_leave" ? (
+                                    <span className="text-xs text-purple-700 dark:text-purple-300 italic truncate block max-w-[260px]" title={row.leaveReason}>
+                                      Reason: {row.leaveReason || "Personal Leave"}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-amber-600 dark:text-amber-400 italic">
+                                      No work log submitted for this date yet
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* 7. Time Window */}
+                                <td className="py-2 px-2.5 text-center min-w-[105px]">
+                                  {row.startTime && row.endTime ? (
+                                    <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                      {row.startTime} – {row.endTime}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400 text-xs">—</span>
+                                  )}
+                                </td>
+
+                                {/* 8. Hours */}
+                                <td className="py-2 px-2 text-center min-w-[55px]">
+                                  {row.status === "submitted" ? (
+                                    <span className="font-mono font-black text-xs text-[#00b0ef] dark:text-[#38bdf8] bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-200 dark:border-sky-800">
+                                      {row.hours}h
+                                    </span>
+                                  ) : (
+                                    <span className="font-mono text-xs text-slate-400">0h</span>
+                                  )}
+                                </td>
+
+                                {/* 9. Status */}
+                                <td className="py-2 px-2 text-center min-w-[80px]">
+                                  {row.status === "submitted" ? (
+                                    <Badge
+                                      variant={
+                                        row.taskStatus === "Completed"
+                                          ? "green"
+                                          : row.taskStatus === "In Progress"
+                                          ? "cyan"
+                                          : "default"
+                                      }
+                                      className="text-[10px] font-bold px-2 py-0.5"
+                                    >
+                                      {row.taskStatus || "Completed"}
+                                    </Badge>
+                                  ) : row.status === "on_leave" ? (
+                                    <Badge className="text-[10px] font-bold px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-300">
+                                      On Leave
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">
+                                      Pending
+                                    </Badge>
+                                  )}
+                                </td>
+
+                                {/* 10. Doubts Button / Indicator */}
+                                <td className="py-2 px-2 text-center min-w-[80px]">
+                                  {hasDoubts ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleDoubtRow(row.taskId!)}
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer border ${
+                                        hasOpenDoubts
+                                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 hover:bg-amber-100"
+                                          : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-100"
+                                      }`}
+                                      title="Toggle doubts thread for this deliverable"
+                                    >
+                                      <MessageSquareQuote className="w-3 h-3" />
+                                      <span>
+                                        {row.doubts?.length} {hasOpenDoubts ? "Open" : "Clarified"}
+                                      </span>
+                                      {isExpanded ? (
+                                        <ChevronUp className="w-2.5 h-2.5" />
+                                      ) : (
+                                        <ChevronDown className="w-2.5 h-2.5" />
+                                      )}
+                                    </button>
+                                  ) : (
+                                    <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                  )}
+                                </td>
+
+                                {/* 11. Review Action (Raise Doubt) */}
+                                <td className="py-2 px-2.5 text-right min-w-[95px]">
+                                  {row.status === "submitted" && row.updateId && row.taskId ? (
                                     <Button
                                       type="button"
                                       size="sm"
                                       variant="outline"
                                       onClick={() =>
-                                        handleOpenDoubtModal(update._id, task._id, task.title, emp.name)
+                                        handleOpenDoubtModal(row.updateId!, row.taskId!, row.taskTitle!, row.empName)
                                       }
-                                      className="h-7 px-2.5 text-xs text-amber-600 dark:text-amber-400 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl flex items-center gap-1 font-semibold cursor-pointer"
+                                      className="h-6 px-2 text-[11px] text-amber-600 dark:text-amber-400 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg inline-flex items-center gap-1 font-bold cursor-pointer"
+                                      title="Raise doubt or clarification question on this deliverable"
                                     >
-                                      <HelpCircle className="w-3.5 h-3.5" />
+                                      <HelpCircle className="w-3 h-3" />
                                       <span>Raise Doubt</span>
                                     </Button>
-                                  </div>
-                                </div>
+                                  ) : (
+                                    <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                                  )}
+                                </td>
+                              </tr>
 
-                                {task.description && (
-                                  <p className="text-xs text-slate-500">{task.description}</p>
-                                )}
-
-                                {/* Existing Doubts & Replies on this Task */}
-                                {task.doubts && task.doubts.length > 0 && (
-                                  <div className="space-y-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                                    {task.doubts.map((doubt: any) => (
-                                      <div
-                                        key={doubt._id}
-                                        className={`p-2.5 rounded-xl text-xs space-y-1 ${
-                                          doubt.status === "resolved"
-                                            ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300"
-                                            : "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300"
-                                        }`}
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <span className="font-bold flex items-center gap-1">
-                                            <MessageSquareQuote className="w-3.5 h-3.5 text-amber-600" />
-                                            <span>Doubt raised by {doubt.raisedByName}:</span>
-                                          </span>
-                                          <Badge
-                                            variant={doubt.status === "resolved" ? "green" : "outline"}
-                                            className="text-[10px]"
-                                          >
-                                            {doubt.status === "resolved" ? "Clarified" : "Open Doubt"}
-                                          </Badge>
-                                        </div>
-                                        <p className="italic text-slate-700 dark:text-slate-300">{doubt.question}</p>
-                                        {doubt.reply && (
-                                          <div className="pt-1 text-slate-600 dark:text-slate-400 border-t border-dashed border-slate-200 dark:border-slate-700">
-                                            <strong className="text-emerald-600 dark:text-emerald-400">
-                                              {emp.name}&apos;s Clarification:
-                                            </strong>{" "}
-                                            {doubt.reply}
-                                          </div>
-                                        )}
+                              {/* Expandable Doubts & Discussion Thread Sub-Row */}
+                              {isExpanded && hasDoubts && (
+                                <tr key={`${row.rowKey}-doubts`} className="bg-amber-50/40 dark:bg-amber-950/20">
+                                  <td colSpan={11} className="py-2.5 px-4">
+                                    <div className="pl-6 space-y-2 border-l-2 border-amber-400 dark:border-amber-500">
+                                      <div className="flex items-center gap-2">
+                                        <MessageSquareQuote className="w-3.5 h-3.5 text-amber-600" />
+                                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">
+                                          Query & Clarification Thread for &quot;{row.taskTitle}&quot; ({row.empName}):
+                                        </span>
                                       </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                                      <div className="space-y-1.5">
+                                        {row.doubts?.map((doubt: any) => (
+                                          <div
+                                            key={doubt._id}
+                                            className={`p-2.5 rounded-xl text-xs space-y-1 border ${
+                                              doubt.status === "resolved"
+                                                ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                                                : "bg-white dark:bg-slate-900 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700"
+                                            }`}
+                                          >
+                                            <div className="flex items-center justify-between">
+                                              <span className="font-bold">
+                                                Doubt raised by {doubt.raisedByName || "Manager"}:
+                                              </span>
+                                              <Badge
+                                                variant={doubt.status === "resolved" ? "green" : "outline"}
+                                                className="text-[10px]"
+                                              >
+                                                {doubt.status === "resolved"
+                                                  ? "Clarified & Resolved"
+                                                  : "Awaiting Employee Reply"}
+                                              </Badge>
+                                            </div>
+                                            <p className="italic text-slate-700 dark:text-slate-300">{doubt.question}</p>
+                                            {doubt.reply && (
+                                              <div className="pt-1 text-slate-600 dark:text-slate-400 border-t border-dashed border-slate-200 dark:border-slate-700">
+                                                <strong className="text-emerald-600 dark:text-emerald-400">
+                                                  {row.empName}&apos;s Clarification:
+                                                </strong>{" "}
+                                                {doubt.reply}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
 
-                            {update?.generalNotes && (
-                              <div className="text-xs text-slate-500 italic pt-1">
-                                <strong>General Notes:</strong> {update.generalNotes}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-amber-600 dark:text-amber-400 italic">
-                            No work log submitted for this date yet.
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                              {/* General Notes Sub-Row when applicable */}
+                              {row.generalNotes && (row.taskIndex === (row.totalTasksForEmp! - 1) || row.status !== "submitted") && (
+                                <tr key={`${row.rowKey}-notes`} className="bg-slate-50/50 dark:bg-slate-800/30">
+                                  <td colSpan={11} className="py-1 px-4 text-[11px] text-slate-500 italic pl-12">
+                                    <strong>General Notes for {row.empName}:</strong> {row.generalNotes}
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
