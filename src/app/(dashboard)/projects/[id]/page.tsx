@@ -57,7 +57,11 @@ export default function ProjectDetailPage({
   const userRole = (session?.user as any)?.role;
   const isAdmin = userRole === "admin";
   const isManager = userRole === "manager";
+  const isEmployee = userRole === "employee" || userRole === "user";
   const canAssignOthers = isAdmin || isManager;
+
+  const [requestingSignOff, setRequestingSignOff] = useState(false);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
   // Role enforcement handled in fetchProject: non-admin non-members redirected to /my-work
 
@@ -375,6 +379,59 @@ export default function ProjectDetailPage({
       alert(err.message);
     } finally {
       setSigningOff(false);
+    }
+  };
+
+  // Handle Employee Requesting Formal Sign-Off from Manager
+  const handleRequestSignOff = async () => {
+    if (!currentSelectedStage) return;
+    if (
+      !confirm(
+        `Raise formal sign-off approval request for Stage #${currentSelectedStage.order}: ${currentSelectedStage.name} to your manager?`
+      )
+    ) {
+      return;
+    }
+    setRequestingSignOff(true);
+    try {
+      const res = await fetch(`/api/stages/${currentSelectedStage._id}/request-sign-off`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || "Sign-off approval request sent to manager!");
+        fetchProject();
+      } else {
+        alert(data.error || "Failed to request sign-off");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to request sign-off");
+    } finally {
+      setRequestingSignOff(false);
+    }
+  };
+
+  // Handle Deliverable Task Deletion
+  const handleDeleteTask = async (taskId: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete deliverable "${title}"?`)) {
+      return;
+    }
+    setDeletingTaskId(taskId);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchProject();
+      } else {
+        alert(data.error || "Failed to delete deliverable");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to delete deliverable");
+    } finally {
+      setDeletingTaskId(null);
     }
   };
 
@@ -925,13 +982,19 @@ export default function ProjectDetailPage({
                   <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <div className="text-left">
                     <span className="font-bold text-emerald-800 dark:text-emerald-300 block leading-tight text-xs">
-                      Sign-Off Approved
+                      Sign-Off Approved by Manager
                     </span>
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block truncate max-w-[220px]" title={currentSelectedStage.signOff.remarks}>
-                      &quot;{currentSelectedStage.signOff.remarks}&quot;
+                    <span className="text-[10px] text-emerald-700 dark:text-emerald-400 block">
+                      Approved by: <strong>{currentSelectedStage.signOff.approvedBy?.name || "Manager"}</strong>
+                      {currentSelectedStage.signOff.approvedAt && ` • ${format(new Date(currentSelectedStage.signOff.approvedAt), "dd MMM yyyy")}`}
                     </span>
+                    {currentSelectedStage.signOff.remarks && (
+                      <span className="text-[10px] text-slate-500 italic block truncate max-w-[220px]" title={currentSelectedStage.signOff.remarks}>
+                        &quot;{currentSelectedStage.signOff.remarks}&quot;
+                      </span>
+                    )}
                   </div>
-                  {isAdmin && (
+                  {isManager && (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -942,19 +1005,56 @@ export default function ProjectDetailPage({
                     </Button>
                   )}
                 </div>
-              ) : isAdmin ? (
+              ) : currentSelectedStage.signOff?.status === "pending_approval" ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs">
+                  <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 animate-pulse" />
+                  <div className="text-left">
+                    <span className="font-bold text-amber-800 dark:text-amber-300 block leading-tight text-xs">
+                      Sign-Off Pending Approval
+                    </span>
+                    <span className="text-[10px] text-amber-700 dark:text-amber-400 block">
+                      Requested by: <strong>{currentSelectedStage.signOff.requestedBy?.name || "Employee"}</strong>
+                    </span>
+                  </div>
+                  {isManager && (
+                    <Button
+                      size="sm"
+                      onClick={() => setIsSignOffModalOpen(true)}
+                      className="h-8 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                      <span>Review &amp; Approve</span>
+                    </Button>
+                  )}
+                </div>
+              ) : isManager ? (
                 <Button
                   size="sm"
                   onClick={() => setIsSignOffModalOpen(true)}
                   className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs"
                 >
                   <ShieldCheck className="w-4 h-4 mr-1.5" />
-                  <span>Stage Sign-Off Review</span>
+                  <span>Manager Sign-Off</span>
+                </Button>
+              ) : isEmployee ? (
+                <Button
+                  size="sm"
+                  onClick={handleRequestSignOff}
+                  disabled={requestingSignOff}
+                  className="h-9 px-3.5 bg-[#00b0ef] hover:bg-[#009ad4] text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1.5"
+                >
+                  {requestingSignOff ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4" />
+                  )}
+                  <span>Raise Sign-Off to Manager</span>
                 </Button>
               ) : (
-                <span className="text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl">
-                  Sign-Off Pending
-                </span>
+                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 px-3 py-1.5 rounded-xl text-xs font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Sign-Off: Pending Manager Approval</span>
+                </div>
               )}
 
               {/* Detailed Task Button */}
@@ -1340,6 +1440,23 @@ export default function ProjectDetailPage({
                         >
                           {t.status}
                         </button>
+
+                        {/* Delete Deliverable Record Button */}
+                        {(isAdmin || isManager || (t.assigneeId?._id === (session?.user as any)?.id) || (t.assigneeId === (session?.user as any)?.id)) && (
+                          <button
+                            type="button"
+                            disabled={deletingTaskId === t._id}
+                            onClick={() => handleDeleteTask(t._id, t.title)}
+                            title="Delete this deliverable record"
+                            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                          >
+                            {deletingTaskId === t._id ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-rose-500" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -1450,7 +1567,7 @@ export default function ProjectDetailPage({
         )}
       </div>
 
-      {/* Admin Sign-Off Modal */}
+      {/* Manager Sign-Off Modal */}
       {isSignOffModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4">
@@ -1458,20 +1575,33 @@ export default function ProjectDetailPage({
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Stage Gate Sign-Off Review
+                  Manager Stage Sign-Off Review
                 </h3>
               </div>
               <button onClick={() => setIsSignOffModalOpen(false)}>
-                <X className="w-4 h-4 text-slate-400" />
+                <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
               </button>
             </div>
 
+            {currentSelectedStage.signOff?.requestedBy && (
+              <div className="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs text-sky-800 dark:text-sky-300 flex items-center justify-between">
+                <span>
+                  <strong>Sign-Off Requested by:</strong> {currentSelectedStage.signOff.requestedBy.name}
+                </span>
+                {currentSelectedStage.signOff.requestedAt && (
+                  <span className="text-[10px] text-sky-600 font-medium">
+                    {format(new Date(currentSelectedStage.signOff.requestedAt), "dd MMM yyyy, hh:mm a")}
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="text-xs text-slate-600 dark:text-slate-400 space-y-2">
               <p>
-                You are reviewing <strong>Stage {currentSelectedStage.order}: {currentSelectedStage.name}</strong>.
+                You are reviewing <strong>Stage {currentSelectedStage.order}: {currentSelectedStage.name}</strong> as Manager.
               </p>
               <p>
-                Approving this stage signifies that all stage exit criteria have been validated. The next sequential stage will be automatically unlocked and activated.
+                Approving this stage validates that all deliverables meet requirements and stage gate criteria are fulfilled. The next sequential stage will be automatically unlocked and activated.
               </p>
             </div>
 
@@ -1479,7 +1609,7 @@ export default function ProjectDetailPage({
               <Label className="text-xs font-bold">Formal Review Remarks *</Label>
               <textarea
                 rows={3}
-                placeholder="e.g. Architectural review complete. All acceptance criteria met."
+                placeholder="e.g. Code reviews and testing complete. Architecture specifications verified."
                 value={signOffRemarks}
                 onChange={(e) => setSignOffRemarks(e.target.value)}
                 className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs bg-slate-50 dark:bg-slate-950"

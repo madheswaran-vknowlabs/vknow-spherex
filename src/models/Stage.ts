@@ -4,6 +4,9 @@ export interface IStageSignOff {
   approvedBy?: mongoose.Types.ObjectId | null;
   approvedAt?: Date | null;
   remarks?: string;
+  requestedBy?: mongoose.Types.ObjectId | null;
+  requestedAt?: Date | null;
+  status?: "pending_approval" | "approved" | "rejected" | null;
 }
 
 export interface IStage extends Document {
@@ -32,6 +35,9 @@ const StageSignOffSchema = new Schema<IStageSignOff>(
     approvedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     approvedAt: { type: Date, default: null },
     remarks: { type: String, default: "" },
+    requestedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    requestedAt: { type: Date, default: null },
+    status: { type: String, enum: ["pending_approval", "approved", "rejected", null], default: null },
   },
   { _id: false }
 );

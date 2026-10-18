@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Stage, Project, Notification } from "@/models";
-import { requireAdmin } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { stageSignOffSchema } from "@/types/schemas";
 import { logAuditEvent } from "@/lib/audit";
 
@@ -12,7 +12,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin();
+    const user = await requireAuth();
+    if (user.role !== "manager" && user.role !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Access denied. Only managers can approve formal stage sign-offs." },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
     await connectDB();
 
@@ -47,9 +53,12 @@ export async function POST(
       stage.percentComplete = 100;
       if (!stage.actualEndDate) stage.actualEndDate = new Date();
       stage.signOff = {
-        approvedBy: admin.id as any,
+        approvedBy: user.id as any,
         approvedAt: new Date(),
         remarks: validated.remarks.trim(),
+        status: "approved",
+        requestedBy: stage.signOff?.requestedBy,
+        requestedAt: stage.signOff?.requestedAt,
       };
 
       await stage.save();
@@ -71,19 +80,20 @@ export async function POST(
         await project.save();
       }
 
-      // Notify project owner/members
-      if (stage.ownerId) {
+      // Notify employee who requested sign-off or stage owner
+      const notifyRecipientId = stage.signOff?.requestedBy || stage.ownerId;
+      if (notifyRecipientId) {
         await Notification.create({
-          userId: stage.ownerId,
+          userId: notifyRecipientId,
           title: `Stage Approved: ${stage.name}`,
-          message: `${admin.name} approved sign-off for stage '${stage.name}' with remarks: "${validated.remarks}"`,
+          message: `Manager ${user.name} approved sign-off for stage '${stage.name}' with remarks: "${validated.remarks}"`,
           type: "stage_approved",
           link: `/projects/${project._id}`,
         });
       }
 
       await logAuditEvent({
-        actor: { userId: admin.id, name: admin.name, role: admin.role, email: admin.email },
+        actor: { userId: user.id, name: user.name, role: user.role, email: user.email },
         action: "STAGE_SIGN_OFF",
         entityType: "Stage",
         entityId: stage._id.toString(),
@@ -105,22 +115,26 @@ export async function POST(
         approvedBy: null,
         approvedAt: null,
         remarks: `REJECTED: ${validated.remarks.trim()}`,
+        status: "rejected",
+        requestedBy: stage.signOff?.requestedBy,
+        requestedAt: stage.signOff?.requestedAt,
       };
 
       await stage.save();
 
-      if (stage.ownerId) {
+      const notifyRecipientId = stage.signOff?.requestedBy || stage.ownerId;
+      if (notifyRecipientId) {
         await Notification.create({
-          userId: stage.ownerId,
+          userId: notifyRecipientId,
           title: `Stage Sign-Off Rejected: ${stage.name}`,
-          message: `${admin.name} rejected stage '${stage.name}': "${validated.remarks}"`,
+          message: `Manager ${user.name} rejected stage '${stage.name}': "${validated.remarks}"`,
           type: "stage_rejected",
           link: `/projects/${project._id}`,
         });
       }
 
       await logAuditEvent({
-        actor: { userId: admin.id, name: admin.name, role: admin.role, email: admin.email },
+        actor: { userId: user.id, name: user.name, role: user.role, email: user.email },
         action: "STAGE_REJECT",
         entityType: "Stage",
         entityId: stage._id.toString(),

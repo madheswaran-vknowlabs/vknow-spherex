@@ -95,6 +95,18 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
     }
 
+    const canDelete =
+      user.role === "admin" ||
+      user.role === "manager" ||
+      (task.assigneeId && task.assigneeId.toString() === user.id);
+
+    if (!canDelete) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized to delete this deliverable" },
+        { status: 403 }
+      );
+    }
+
     task.isArchived = true;
     await task.save();
 

@@ -45,6 +45,7 @@ export async function GET(
       Stage.find({ projectId: id, isArchived: false })
         .populate("ownerId", "name email avatar department")
         .populate("signOff.approvedBy", "name email role")
+        .populate({ path: "signOff.requestedBy", select: "name email role", strictPopulate: false })
         .sort({ order: 1 })
         .lean(),
       Task.find({ projectId: id, isArchived: false })
