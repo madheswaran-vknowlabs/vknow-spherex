@@ -105,12 +105,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Assignee enforcement: Only Admin and Manager can assign to someone else. Employees assign to themselves.
+    const canAssignOthers = user.role === "admin" || user.role === "manager";
+    const finalAssigneeId = canAssignOthers ? (validated.assigneeId || null) : user.id;
+
     const task = await Task.create({
       projectId: validated.projectId,
       stageId: validated.stageId,
       title: validated.title.trim(),
       description: validated.description || "",
-      assigneeId: validated.assigneeId || null,
+      assigneeId: finalAssigneeId,
       priority: validated.priority,
       plannedStartDate: plannedStart,
       plannedEndDate: plannedEnd,
@@ -131,9 +135,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Notify assignee if assigned to someone else
-    if (validated.assigneeId && validated.assigneeId.toString() !== user.id) {
+    if (finalAssigneeId && finalAssigneeId.toString() !== user.id) {
       await Notification.create({
-        userId: validated.assigneeId,
+        userId: finalAssigneeId,
         title: "New Task Assigned",
         message: `${user.name} assigned you task: '${task.title}' in project '${project.name}'.`,
         type: "task_assigned",

@@ -50,6 +50,8 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const { data: session } = useSession();
   const currentUserId = (session?.user as any)?.id;
+  const currentUserRole = (session?.user as any)?.role;
+  const canAssignOthers = currentUserRole === "admin" || currentUserRole === "manager";
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     defaultProjectId || (projects.length > 0 ? projects[0]._id : "")
@@ -188,7 +190,7 @@ export function CreateTaskModal({
         stageId: selectedStageId,
         title: title.trim(),
         description: description.trim(),
-        assigneeId: assigneeId || null,
+        assigneeId: canAssignOthers ? (assigneeId || null) : currentUserId,
         priority,
         estimatedHours: Number(estimatedHours) || 0,
         plannedStartDate: new Date(startDate),
@@ -341,18 +343,33 @@ export function CreateTaskModal({
           {/* Assignee & Priority */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Assignee</Label>
-              <select
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
-              >
-                {projectMembers.map((m) => (
-                  <option key={m._id} value={m._id}>
-                    {m.name} {m._id === currentUserId ? "(Myself)" : ""} ({m.department || m.role})
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold">Assignee</Label>
+                {!canAssignOthers && (
+                  <span className="text-[10px] text-slate-400 font-medium">Assigned to you</span>
+                )}
+              </div>
+              {canAssignOthers ? (
+                <select
+                  value={assigneeId}
+                  onChange={(e) => setAssigneeId(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-semibold text-slate-800 dark:text-slate-200 shadow-xs focus:ring-2 focus:ring-[#00b0ef]"
+                >
+                  {projectMembers.map((m) => (
+                    <option key={m._id} value={m._id}>
+                      {m.name} {m._id === currentUserId ? "(Myself)" : ""} ({m.department || m.role})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div
+                  className="h-11 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-2xs select-none"
+                  title="Assignee locked to your login. Only Admin & Managers can assign to others."
+                >
+                  <UserCheck className="w-4 h-4 text-[#00b0ef]" />
+                  <span>{session?.user?.name || "Me"} (Yourself)</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">

@@ -21,6 +21,7 @@ import {
   Plus,
   Edit,
   ShieldCheck,
+  UserCheck,
   AlertCircle,
   Loader2,
   Lock,
@@ -53,7 +54,10 @@ export default function ProjectDetailPage({
   const { id } = use(params);
   const { data: session, status } = useSession();
   const router = useRouter();
-  const isAdmin = (session?.user as any)?.role === "admin";
+  const userRole = (session?.user as any)?.role;
+  const isAdmin = userRole === "admin";
+  const isManager = userRole === "manager";
+  const canAssignOthers = isAdmin || isManager;
 
   // Role enforcement handled in fetchProject: non-admin non-members redirected to /my-work
 
@@ -226,10 +230,24 @@ export default function ProjectDetailPage({
   const { project, stages, tasks, discrepancies } = projectData;
   const currentSelectedStage =
     stages.find((s: any) => String(s._id) === String(selectedStageId)) || stages[0];
-  const stageTasks = tasks.filter((t: any) => {
-    const sId = t.stageId?._id ? String(t.stageId._id) : String(t.stageId);
-    return sId === String(currentSelectedStage?._id);
-  });
+  const stageTasks = tasks
+    .filter((t: any) => {
+      const sId = t.stageId?._id ? String(t.stageId._id) : String(t.stageId);
+      return sId === String(currentSelectedStage?._id);
+    })
+    .sort((a: any, b: any) => {
+      const getLatestTime = (task: any) => {
+        let maxTime = new Date(task.updatedAt || task.createdAt || 0).getTime();
+        if (task.workLogs && task.workLogs.length > 0) {
+          task.workLogs.forEach((log: any) => {
+            const logTime = new Date(log.createdAt || log.date || 0).getTime();
+            if (logTime > maxTime) maxTime = logTime;
+          });
+        }
+        return maxTime;
+      };
+      return getLatestTime(b) - getLatestTime(a);
+    });
 
   // Check if previous stage was approved
   const currentStageOrder = currentSelectedStage?.order || 1;
@@ -294,6 +312,9 @@ export default function ProjectDetailPage({
     }
     setQuickSubmitting(true);
     try {
+      const sessionUserId = (session?.user as any)?.id;
+      const targetAssigneeId = canAssignOthers ? (quickAssignee || sessionUserId || null) : sessionUserId;
+
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -302,7 +323,7 @@ export default function ProjectDetailPage({
           stageId: currentSelectedStage._id,
           title: quickTitle.trim(),
           description: quickTitle.trim(),
-          assigneeId: quickAssignee || (session?.user as any)?.id || null,
+          assigneeId: targetAssigneeId,
           priority: "Medium",
           estimatedHours: quickHours > 0 ? quickHours : 4,
           loggedHours: quickHours,
@@ -339,12 +360,15 @@ export default function ProjectDetailPage({
     e.preventDefault();
     setCreatingTask(true);
     try {
+      const sessionUserId = (session?.user as any)?.id;
+      const targetAssigneeId = canAssignOthers ? (taskAssignee || null) : sessionUserId;
+
       const payload: any = {
         projectId: project._id,
         stageId: currentSelectedStage._id,
         title: taskTitle.trim(),
         description: taskDesc.trim(),
-        assigneeId: taskAssignee || null,
+        assigneeId: targetAssigneeId,
         priority: taskPriority,
         estimatedHours: Number(taskEstHours) || 0,
         plannedStartDate: new Date(taskStartDate),
@@ -861,25 +885,31 @@ export default function ProjectDetailPage({
               {/* Stage Owner */}
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-slate-400 font-semibold">Owner:</span>
-                <div className="w-44">
-                  <CoolDropdown
-                    fullWidth
-                    size="sm"
-                    searchable
-                    value={currentSelectedStage.ownerId?._id || ""}
-                    onChange={(val) => handleUpdateStage({ ownerId: val || null })}
-                    placeholder="Stage Owner"
-                    options={[
-                      { value: "", label: "-- Unassigned --" },
-                      ...activeUsers.map((u) => ({
-                        value: u._id,
-                        label: u.name,
-                        sublabel: u.department || u.role,
-                        badge: u.role?.toUpperCase(),
-                      })),
-                    ]}
-                  />
-                </div>
+                {canAssignOthers ? (
+                  <div className="w-44">
+                    <CoolDropdown
+                      fullWidth
+                      size="sm"
+                      searchable
+                      value={currentSelectedStage.ownerId?._id || ""}
+                      onChange={(val) => handleUpdateStage({ ownerId: val || null })}
+                      placeholder="Stage Owner"
+                      options={[
+                        { value: "", label: "-- Unassigned --" },
+                        ...activeUsers.map((u) => ({
+                          value: u._id,
+                          label: u.name,
+                          sublabel: u.department || u.role,
+                          badge: u.role?.toUpperCase(),
+                        })),
+                      ]}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-xl">
+                    {currentSelectedStage.ownerId?.name || "Unassigned"}
+                  </span>
+                )}
               </div>
 
               {/* Stage Status Selector */}
@@ -984,22 +1014,32 @@ export default function ProjectDetailPage({
                 />
               </div>
 
-              {/* Assignee Selector */}
-              <div className="shrink-0">
-                <select
-                  value={quickAssignee}
-                  onChange={(e) => setQuickAssignee(e.target.value)}
-                  className="h-11 px-3 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs min-w-[150px] cursor-pointer"
+              {/* Assignee Selector: Only Admin & Manager can choose; Employees are locked to themselves */}
+              {canAssignOthers ? (
+                <div className="shrink-0">
+                  <select
+                    value={quickAssignee}
+                    onChange={(e) => setQuickAssignee(e.target.value)}
+                    className="h-11 px-3 text-xs font-semibold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-2xs min-w-[150px] cursor-pointer"
+                  >
+                    <option value={(session?.user as any)?.id || ""}>Me ({session?.user?.name || "Assignee"})</option>
+                    <option value="">-- Unassigned --</option>
+                    {activeUsers.map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div
+                  className="h-11 px-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0 select-none shadow-2xs"
+                  title="Assignee locked to your login. Only Admin & Managers can assign to others."
                 >
-                  <option value={(session?.user as any)?.id || ""}>Me ({session?.user?.name || "Assignee"})</option>
-                  <option value="">-- Unassigned --</option>
-                  {activeUsers.map((u) => (
-                    <option key={u._id} value={u._id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <UserCheck className="w-4 h-4 text-[#00b0ef]" />
+                  <span>Me ({session?.user?.name || "Assignee"})</span>
+                </div>
+              )}
 
               {/* Add & Log CTA Button */}
               <Button
@@ -1057,7 +1097,7 @@ export default function ProjectDetailPage({
           </form>
         </div>
 
-        {/* Stage Deliverables Tasks List */}
+        {/* Stage Deliverables Tasks List (Clockify-Style Single-Row Records) */}
         <div>
           {stageTasks.length === 0 ? (
             <div className="py-12 text-center text-slate-400">
@@ -1070,143 +1110,166 @@ export default function ProjectDetailPage({
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 mt-1">
-              {stageTasks.map((t: any) => {
-                const isDone = t.status === "Completed";
-                return (
-                  <div
-                    key={t._id}
-                    className="py-3 flex items-start sm:items-center justify-between gap-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 px-3 rounded-xl transition-colors"
-                  >
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      {/* Status cycle checkbox button */}
-                      <button
-                        onClick={() => handleCycleTaskStatus(t)}
-                        title="Click to advance status"
-                        className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center text-xs shrink-0 transition-colors cursor-pointer ${
-                          isDone
-                            ? "bg-emerald-500 border-emerald-500 text-white"
-                            : t.status === "In Progress"
-                            ? "border-[#00b0ef] text-[#00b0ef]"
-                            : "border-slate-300 dark:border-slate-600 hover:border-[#00b0ef]"
-                        }`}
-                      >
-                        {isDone && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </button>
+            <div className="space-y-1">
+              {/* Clockify Records Header Bar */}
+              <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 select-none">
+                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                  <span className="w-5 text-center">#</span>
+                  <span className="w-24 shrink-0">Module</span>
+                  <span className="w-48 xl:w-56 shrink-0">Deliverable</span>
+                  <span className="flex-1 min-w-[120px] hidden sm:inline">Description</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="w-48 text-center">Log Time (From – To)</span>
+                  <span className="w-24 hidden xl:inline text-left">Assignee</span>
+                  <span className="w-16 text-center">Log</span>
+                  <span className="w-24 text-right pr-2">Status</span>
+                </div>
+              </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span
-                            className={`text-sm font-bold truncate ${
-                              isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"
-                            }`}
-                          >
-                            {t.title}
-                          </span>
+              {/* Records List (Single Row Per Task, Latest First) */}
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {stageTasks.map((t: any) => {
+                  const isDone = t.status === "Completed";
+                  const latestLog =
+                    t.workLogs && t.workLogs.length > 0 ? t.workLogs[t.workLogs.length - 1] : null;
+                  const timeRangeText =
+                    latestLog?.startTime && latestLog?.endTime
+                      ? `${latestLog.startTime} – ${latestLog.endTime} (${latestLog.hours}h)`
+                      : t.loggedHours > 0
+                      ? `${t.loggedHours}h / ${t.estimatedHours || t.loggedHours}h`
+                      : "0h logged";
 
-                          {t.isAtRisk && (
-                            <Badge variant="amber" className="text-xs px-2 py-0.5 font-bold shrink-0">
-                              At Risk
-                            </Badge>
-                          )}
+                  return (
+                    <div
+                      key={t._id}
+                      className="py-2.5 px-3 flex items-center justify-between gap-2.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 rounded-xl transition-all border border-transparent hover:border-slate-200/60 dark:hover:border-slate-700/60 group"
+                    >
+                      {/* Left: Checkbox + Module Tag + Deliverable Title + Description (Single Row) */}
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        {/* Status cycle checkbox */}
+                        <button
+                          onClick={() => handleCycleTaskStatus(t)}
+                          title="Click to cycle status"
+                          className={`w-5 h-5 rounded-lg border flex items-center justify-center text-xs shrink-0 transition-colors cursor-pointer ${
+                            isDone
+                              ? "bg-emerald-500 border-emerald-500 text-white"
+                              : t.status === "In Progress"
+                              ? "border-[#00b0ef] text-[#00b0ef] bg-[#e0f6fd]/40 dark:bg-[#00b0ef]/10"
+                              : "border-slate-300 dark:border-slate-600 hover:border-[#00b0ef]"
+                          }`}
+                        >
+                          {isDone && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </button>
 
-                          {t.lagInDays > 0 && (
-                            <Badge
-                              variant={t.health === "Red" ? "destructive" : "amber"}
-                              className="text-xs px-2 py-0.5 font-bold shrink-0"
-                            >
-                              +{t.lagInDays}d Lag
-                            </Badge>
-                          )}
+                        {/* Module Tag */}
+                        <span className="text-[11px] font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2 py-0.5 rounded-md shrink-0 w-24 truncate text-center">
+                          #{currentSelectedStage.order} {currentSelectedStage.name}
+                        </span>
 
-                          <Badge variant="secondary" className="text-xs px-2 py-0.5 font-semibold">
-                            {t.priority}
+                        {/* Deliverable Title */}
+                        <span
+                          className={`text-sm font-bold truncate shrink-0 w-48 xl:w-56 ${
+                            isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-white"
+                          }`}
+                          title={t.title}
+                        >
+                          {t.title}
+                        </span>
+
+                        {/* Lag / Risk badge */}
+                        {t.isAtRisk && (
+                          <Badge variant="amber" className="text-[10px] px-1.5 py-0 font-bold shrink-0">
+                            At Risk
                           </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap">
-                          <span>
-                            Assignee: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{t.assigneeId?.name || "Unassigned"}</strong>
-                          </span>
-                          <span>&bull;</span>
-                          <span>
-                            Effort: <strong>{t.loggedHours}h</strong> logged / <strong>{t.estimatedHours}h</strong> est
-                            {t.loggedHours > t.estimatedHours && (
-                              <span className="text-rose-600 font-bold ml-1.5">
-                                (+{Math.round((t.loggedHours - t.estimatedHours) * 10) / 10}h over)
-                              </span>
-                            )}
-                          </span>
-                          {t.blockedBy?.length > 0 && (
-                            <>
-                              <span>&bull;</span>
-                              <span className="text-amber-600 dark:text-amber-400 font-semibold">
-                                Blocked by {t.blockedBy.length} task(s)
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        {t.description && (
-                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                            {t.description}
-                          </p>
+                        )}
+                        {t.lagInDays > 0 && (
+                          <Badge
+                            variant={t.health === "Red" ? "destructive" : "amber"}
+                            className="text-[10px] px-1.5 py-0 font-bold shrink-0"
+                          >
+                            +{t.lagInDays}d Lag
+                          </Badge>
                         )}
 
-                        {t.workLogs && t.workLogs.length > 0 && (
-                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-1.5 bg-[#e0f6fd]/50 dark:bg-[#00b0ef]/10 px-2.5 py-1.5 rounded-xl border border-[#00b0ef]/20">
-                            <Clock className="w-3.5 h-3.5 text-[#00b0ef] shrink-0" />
-                            <span className="truncate">
-                              Latest Log: <strong className="text-slate-800 dark:text-slate-200">{t.workLogs[t.workLogs.length - 1].startTime || "Logged"} &ndash; {t.workLogs[t.workLogs.length - 1].endTime || ""}</strong> ({t.workLogs[t.workLogs.length - 1].hours}h): &quot;{t.workLogs[t.workLogs.length - 1].notes}&quot;
-                            </span>
-                          </div>
-                        )}
+                        {/* Description (Single-line truncated) */}
+                        <span
+                          className="text-xs text-slate-500 dark:text-slate-400 truncate flex-1 min-w-[100px] hidden sm:inline"
+                          title={t.description || t.title}
+                        >
+                          {t.description ? t.description : <span className="italic text-slate-400">No description</span>}
+                        </span>
+                      </div>
+
+                      {/* Right: Log From & To Time + Assignee + Log Work + Discrepancy + Status */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Log From and To Time */}
+                        <div
+                          className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 text-xs font-semibold text-slate-700 dark:text-slate-300 shrink-0 w-48"
+                          title={
+                            latestLog?.startTime && latestLog?.endTime
+                              ? `Latest Log: ${latestLog.startTime} – ${latestLog.endTime} (${latestLog.hours}h) notes: "${latestLog.notes}"`
+                              : `Effort: ${t.loggedHours}h / ${t.estimatedHours || t.loggedHours}h`
+                          }
+                        >
+                          <Clock className="w-3.5 h-3.5 text-[#00b0ef] shrink-0" />
+                          <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {timeRangeText}
+                          </span>
+                        </div>
+
+                        {/* Assignee */}
+                        <div className="hidden xl:flex items-center gap-1 text-xs text-slate-500 shrink-0 w-24">
+                          <strong className="text-slate-700 dark:text-slate-300 truncate" title={t.assigneeId?.name || "Unassigned"}>
+                            {t.assigneeId?.name || "Unassigned"}
+                          </strong>
+                        </div>
+
+                        {/* Log Work Button */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedTaskForLogWork(t)}
+                          className="h-8 px-2 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-300 hover:text-[#00b0ef] hover:border-[#00b0ef] transition-colors shrink-0"
+                          title="Log working hours (e.g. 10am to 12pm) and update progress"
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1 text-[#00b0ef]" />
+                          <span>Log</span>
+                        </Button>
+
+                        {/* Blocker button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRaiseDiscrepancyDefaultTaskId(t._id);
+                            setRaiseDiscrepancyDefaultStageId(currentSelectedStage._id);
+                            setIsRaiseDiscrepancyOpen(true);
+                          }}
+                          title="Log blocker or discrepancy against this deliverable"
+                          className="p-1.5 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer shrink-0"
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                        </button>
+
+                        {/* Status Toggle Button */}
+                        <button
+                          onClick={() => handleCycleTaskStatus(t)}
+                          className={`w-24 text-center py-1 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0 ${
+                            t.status === "Completed"
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 hover:bg-emerald-100"
+                              : t.status === "In Progress"
+                              ? "bg-sky-50 text-[#00b0ef] dark:bg-sky-950/60 hover:bg-sky-100"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                          }`}
+                          title="Click to cycle status"
+                        >
+                          {t.status}
+                        </button>
                       </div>
                     </div>
-
-                    {/* Right Task Progress & Status Actions */}
-                    <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                      {/* Log Work Button */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedTaskForLogWork(t)}
-                        className="h-8 px-3 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-300 hover:text-[#00b0ef] hover:border-[#00b0ef] transition-colors"
-                        title="Log working hours (e.g. 10am to 12pm) and update progress"
-                      >
-                        <Clock className="w-3.5 h-3.5 mr-1.5 text-[#00b0ef]" />
-                        <span>Log Work</span>
-                      </Button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRaiseDiscrepancyDefaultTaskId(t._id);
-                          setRaiseDiscrepancyDefaultStageId(currentSelectedStage._id);
-                          setIsRaiseDiscrepancyOpen(true);
-                        }}
-                        title="Log blocker or discrepancy against this deliverable"
-                        className="p-1.5 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
-                      >
-                        <AlertTriangle className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => handleCycleTaskStatus(t)}
-                        className={`px-2.5 py-1 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
-                          t.status === "Completed"
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 hover:bg-emerald-100"
-                            : t.status === "In Progress"
-                            ? "bg-sky-50 text-[#00b0ef] dark:bg-sky-950/60 hover:bg-sky-100"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-                        }`}
-                      >
-                        {t.status}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -1445,23 +1508,38 @@ export default function ProjectDetailPage({
               <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="space-y-1">
-                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Assignee</Label>
-                    <CoolDropdown
-                      fullWidth
-                      searchable
-                      value={taskAssignee}
-                      onChange={setTaskAssignee}
-                      placeholder="-- Select Assignee --"
-                      options={[
-                        { value: "", label: "-- Unassigned --" },
-                        ...activeUsers.map((u) => ({
-                          value: u._id,
-                          label: u.name,
-                          sublabel: u.department || u.role,
-                          badge: u.role?.toUpperCase(),
-                        })),
-                      ]}
-                    />
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Assignee</Label>
+                      {!canAssignOthers && (
+                        <span className="text-[10px] text-slate-400 font-medium">Assigned to you</span>
+                      )}
+                    </div>
+                    {canAssignOthers ? (
+                      <CoolDropdown
+                        fullWidth
+                        searchable
+                        value={taskAssignee}
+                        onChange={setTaskAssignee}
+                        placeholder="-- Select Assignee --"
+                        options={[
+                          { value: "", label: "-- Unassigned --" },
+                          ...activeUsers.map((u) => ({
+                            value: u._id,
+                            label: u.name,
+                            sublabel: u.department || u.role,
+                            badge: u.role?.toUpperCase(),
+                          })),
+                        ]}
+                      />
+                    ) : (
+                      <div
+                        className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/60 flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs select-none"
+                        title="Assignee locked to your login. Only Admin & Managers can assign to others."
+                      >
+                        <UserCheck className="w-4 h-4 text-[#00b0ef]" />
+                        <span>{session?.user?.name || "Me"} (Yourself)</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1">
