@@ -5,6 +5,7 @@ import Link from "next/link";
 import { WeeklyUpdateModal } from "@/components/weekly-update/WeeklyUpdateModal";
 import { RaiseDiscrepancyModal } from "@/components/discrepancies/RaiseDiscrepancyModal";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+import { LogWorkModal } from "@/components/tasks/LogWorkModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,7 @@ export default function MyWorkPage() {
     undefined
   );
   const [selectedTaskForDiscrepancy, setSelectedTaskForDiscrepancy] = useState<any>(null);
+  const [selectedTaskForLogWork, setSelectedTaskForLogWork] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"all" | "dueThisWeek" | "overdue">("all");
   const [filterPriority, setFilterPriority] = useState<string>("ALL");
 
@@ -489,6 +491,21 @@ export default function MyWorkPage() {
                         </>
                       )}
                     </div>
+
+                    {task.description && (
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                        {task.description}
+                      </p>
+                    )}
+
+                    {task.workLogs && task.workLogs.length > 0 && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 dark:text-slate-400 mt-1.5 bg-[#e0f6fd]/50 dark:bg-[#00b0ef]/10 px-2.5 py-1 rounded-lg border border-[#00b0ef]/20">
+                        <Clock className="w-3 h-3 text-[#00b0ef] shrink-0" />
+                        <span className="truncate">
+                          Latest Session: <strong>{task.workLogs[task.workLogs.length - 1].startTime || "Logged"} – {task.workLogs[task.workLogs.length - 1].endTime || ""}</strong> ({task.workLogs[task.workLogs.length - 1].hours}h): &quot;{task.workLogs[task.workLogs.length - 1].notes}&quot;
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -510,13 +527,24 @@ export default function MyWorkPage() {
                     </span>
                   </div>
 
-                  {/* Quick Hour Logging Chips */}
+                  {/* Log Work Session Button & Quick Chips */}
                   <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedTaskForLogWork(task)}
+                      className="h-7 px-2 text-xs font-semibold rounded-lg text-slate-700 dark:text-slate-300 hover:text-[#00b0ef] hover:border-[#00b0ef] transition-colors"
+                      title="Log working hours (e.g. 10am to 12pm) and session notes"
+                    >
+                      <Clock className="w-3 h-3 mr-1 text-[#00b0ef]" />
+                      <span>Log Work</span>
+                    </Button>
+
                     {[1, 2].map((h) => (
                       <button
                         key={h}
                         onClick={() => handleQuickUpdate(task._id, { addHours: h })}
-                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-[#00b0ef] hover:text-white text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                        className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-[#00b0ef] hover:text-white text-[11px] font-bold text-slate-700 dark:text-slate-300 transition-colors"
                         title={`Log ${h} hour to this task`}
                       >
                         +{h}h
@@ -580,6 +608,16 @@ export default function MyWorkPage() {
         }
         defaultTaskId={selectedTaskForDiscrepancy?._id}
         onSuccess={fetchMyWork}
+      />
+
+      {/* Log Work Session & Time Interval Modal */}
+      <LogWorkModal
+        isOpen={!!selectedTaskForLogWork}
+        onClose={() => setSelectedTaskForLogWork(null)}
+        onSuccess={fetchMyWork}
+        task={selectedTaskForLogWork}
+        stageName={selectedTaskForLogWork?.stageId?.name}
+        stageOrder={selectedTaskForLogWork?.stageId?.order}
       />
     </div>
   );

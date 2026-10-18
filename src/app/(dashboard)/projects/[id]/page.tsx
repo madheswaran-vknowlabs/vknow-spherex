@@ -43,6 +43,7 @@ import { ResolveDiscrepancyModal } from "@/components/discrepancies/ResolveDiscr
 import { FrappeGantt, GanttItem } from "@/components/timeline/FrappeGantt";
 import { CoolDropdown } from "@/components/ui/cool-select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { LogWorkModal } from "@/components/tasks/LogWorkModal";
 
 export default function ProjectDetailPage({
   params,
@@ -60,6 +61,7 @@ export default function ProjectDetailPage({
   const [loading, setLoading] = useState(true);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<"stepper" | "gantt">("stepper");
+  const [selectedTaskForLogWork, setSelectedTaskForLogWork] = useState<any>(null);
 
   // Users for assignees
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
@@ -931,11 +933,32 @@ export default function ProjectDetailPage({
                               {t.description}
                             </p>
                           )}
+
+                          {t.workLogs && t.workLogs.length > 0 && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1 bg-[#e0f6fd]/50 dark:bg-[#00b0ef]/10 px-2 py-1 rounded-lg border border-[#00b0ef]/20">
+                              <Clock className="w-3 h-3 text-[#00b0ef] shrink-0" />
+                              <span className="truncate">
+                                Latest Log: <strong>{t.workLogs[t.workLogs.length - 1].startTime || "Logged"} – {t.workLogs[t.workLogs.length - 1].endTime || ""}</strong> ({t.workLogs[t.workLogs.length - 1].hours}h): &quot;{t.workLogs[t.workLogs.length - 1].notes}&quot;
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Right Task Progress & Status Badge */}
                       <div className="flex items-center gap-2 shrink-0">
+                        {/* Log Work Button */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedTaskForLogWork(t)}
+                          className="h-7 px-2.5 text-[11px] font-semibold rounded-lg text-slate-700 dark:text-slate-300 hover:text-[#00b0ef] hover:border-[#00b0ef] transition-colors"
+                          title="Log working hours (e.g. 10am to 12pm) and update progress"
+                        >
+                          <Clock className="w-3 h-3 mr-1 text-[#00b0ef]" />
+                          <span>Log Work</span>
+                        </Button>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -1449,6 +1472,16 @@ export default function ProjectDetailPage({
         onClose={() => setSelectedDiscrepancyForResolve(null)}
         discrepancy={selectedDiscrepancyForResolve}
         onSuccess={() => fetchProject()}
+      />
+
+      {/* Log Work Session & Time Interval Modal */}
+      <LogWorkModal
+        isOpen={!!selectedTaskForLogWork}
+        onClose={() => setSelectedTaskForLogWork(null)}
+        onSuccess={() => fetchProject()}
+        task={selectedTaskForLogWork}
+        stageName={currentSelectedStage?.name}
+        stageOrder={currentSelectedStage?.order}
       />
     </div>
   );

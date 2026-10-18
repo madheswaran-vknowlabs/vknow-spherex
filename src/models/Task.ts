@@ -1,5 +1,17 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export interface IWorkLog {
+  _id?: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  userName: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  hours: number;
+  notes: string;
+  createdAt?: Date;
+}
+
 export interface ITask extends Document {
   projectId: mongoose.Types.ObjectId;
   stageId: mongoose.Types.ObjectId;
@@ -16,6 +28,7 @@ export interface ITask extends Document {
   percentComplete: number;
   status: "To Do" | "In Progress" | "Under Review" | "Completed" | "Blocked";
   blockedBy: mongoose.Types.ObjectId[];
+  workLogs?: IWorkLog[];
   isAtRisk: boolean;
   lagInDays: number;
   health: "Green" | "Amber" | "Red";
@@ -51,6 +64,18 @@ const TaskSchema = new Schema<ITask>(
       index: true,
     },
     blockedBy: [{ type: Schema.Types.ObjectId, ref: "Task" }],
+    workLogs: [
+      {
+        userId: { type: Schema.Types.ObjectId, ref: "User" },
+        userName: { type: String, default: "" },
+        date: { type: Date, default: Date.now },
+        startTime: { type: String, default: "" },
+        endTime: { type: String, default: "" },
+        hours: { type: Number, default: 0 },
+        notes: { type: String, default: "" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     isAtRisk: { type: Boolean, default: false, index: true },
     lagInDays: { type: Number, default: 0 },
     health: { type: String, enum: ["Green", "Amber", "Red"], default: "Green" },
