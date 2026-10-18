@@ -20,37 +20,43 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const health = searchParams.get("health");
 
-    const query: any = { isArchived: false };
+    const andClauses: any[] = [{ isArchived: false }];
 
     // Scoping by role:
     // Admin: full access
-    // Manager: sees projects containing themselves or employees created by them
+    // Manager: sees projects containing themselves, their employees, or projects created by them
     // Employee: only projects where they are assigned members
     if (user.role === "manager") {
       const myEmployees = await User.find({
         $or: [{ createdBy: user.id }, { managerId: user.id }],
       }).select("_id");
       const teamIds = [user.id, ...myEmployees.map((e) => e._id.toString())];
-      query.members = { $in: teamIds };
+      andClauses.push({
+        $or: [{ members: { $in: teamIds } }, { createdBy: user.id }],
+      });
     } else if (user.role !== "admin") {
-      query.members = user.id;
+      andClauses.push({ members: user.id });
     }
 
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { code: { $regex: search, $options: "i" } },
-        { client: { $regex: search, $options: "i" } },
-      ];
+      andClauses.push({
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { code: { $regex: search, $options: "i" } },
+          { client: { $regex: search, $options: "i" } },
+        ],
+      });
     }
 
     if (status && status !== "ALL") {
-      query.status = status;
+      andClauses.push({ status });
     }
 
     if (health && health !== "ALL") {
-      query.health = health;
+      andClauses.push({ health });
     }
+
+    const query = andClauses.length > 1 ? { $and: andClauses } : andClauses[0];
 
     const projects = await Project.find(query)
       .populate("members", "name email avatar department role")

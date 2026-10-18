@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import { Project, Stage, Task, Discrepancy } from "@/models";
-import { requireAuth, requireAdmin } from "@/lib/auth";
+import { Project, Stage, Task, Discrepancy, User } from "@/models";
+import { requireAuth, requireAdmin, requireAdminOrManager } from "@/lib/auth";
 import { updateProjectSchema } from "@/types/schemas";
 import { logAuditEvent } from "@/lib/audit";
 
@@ -27,12 +27,28 @@ export async function GET(
       );
     }
 
-    // Role check for regular users
+    // Role check for regular users & managers
     if (user.role !== "admin") {
       const isMember = project.members.some(
         (m: any) => m._id.toString() === user.id
       );
-      if (!isMember) {
+      let isManagerWithAccess = false;
+      if (user.role === "manager") {
+        const isCreator = (project as any).createdBy && (project as any).createdBy.toString() === user.id;
+        if (isCreator) {
+          isManagerWithAccess = true;
+        } else {
+          const myTeam = await User.find({
+            $or: [{ createdBy: user.id }, { managerId: user.id }],
+          }).select("_id");
+          const teamIds = myTeam.map((e: any) => e._id.toString());
+          if (project.members.some((m: any) => teamIds.includes(m._id.toString()))) {
+            isManagerWithAccess = true;
+          }
+        }
+      }
+
+      if (!isMember && !isManagerWithAccess) {
         return NextResponse.json(
           { success: false, error: "Access denied. You are not a member of this project." },
           { status: 403 }
@@ -81,7 +97,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireAdmin();
+    const user = await requireAdminOrManager();
     const { id } = await params;
     await connectDB();
 

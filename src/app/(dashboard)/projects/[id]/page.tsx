@@ -45,6 +45,7 @@ import { FrappeGantt, GanttItem } from "@/components/timeline/FrappeGantt";
 import { CoolDropdown } from "@/components/ui/cool-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { LogWorkModal } from "@/components/tasks/LogWorkModal";
+import { ManageProjectTeamModal } from "@/components/projects/ManageProjectTeamModal";
 
 export default function ProjectDetailPage({
   params,
@@ -232,6 +233,8 @@ export default function ProjectDetailPage({
   const [editDesc, setEditDesc] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [savingProject, setSavingProject] = useState(false);
+  // Team Management Modal state
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
 
   // Discrepancy & Recalculate State
   const [isRaiseDiscrepancyOpen, setIsRaiseDiscrepancyOpen] = useState(false);
@@ -784,7 +787,25 @@ export default function ProjectDetailPage({
               <span className="hidden sm:inline ml-1">Discrepancy</span>
             </Button>
 
-            {isAdmin && (
+            {(isAdmin || isManager) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsTeamModalOpen(true)}
+                className="h-8 px-2.5 text-xs font-semibold rounded-xl border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 bg-sky-50/70 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/60 shadow-xs flex items-center gap-1.5"
+                title="Manage Project Team Members"
+              >
+                <Users className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                <span className="hidden sm:inline">Team</span>
+                {project?.members?.length > 0 && (
+                  <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-sky-200 dark:bg-sky-800 text-sky-800 dark:text-sky-100 font-bold">
+                    {project.members.length}
+                  </span>
+                )}
+              </Button>
+            )}
+
+            {(isAdmin || isManager) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -2087,6 +2108,16 @@ export default function ProjectDetailPage({
         task={selectedTaskForLogWork}
         stageName={currentSelectedStage?.name}
         stageOrder={currentSelectedStage?.order}
+      />
+
+      {/* Manage Project Team Modal */}
+      <ManageProjectTeamModal
+        isOpen={isTeamModalOpen}
+        onClose={() => setIsTeamModalOpen(false)}
+        projectId={project._id}
+        projectName={project.name}
+        projectCode={project.code}
+        onTeamUpdated={() => fetchProject()}
       />
     </div>
   );

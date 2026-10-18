@@ -528,7 +528,7 @@ export default function DailyUpdatePage() {
                     >
                       {data?.projects?.map((p: any) => (
                         <option key={p._id} value={p._id}>
-                          {p.name} ({p.key})
+                          {p.name} ({p.code || p.key || "PRJ"})
                         </option>
                       ))}
                     </select>

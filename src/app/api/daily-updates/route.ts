@@ -63,12 +63,11 @@ export async function GET(req: NextRequest) {
       const projects = await Project.find({
         isArchived: false,
         $or: [
-          { "members.userId": currentUser.id },
+          { members: currentUser.id },
           { createdBy: currentUser.id },
-          { isArchived: false }, // fallback to all active projects
         ],
       })
-        .select("_id name key status stages members")
+        .select("_id name code key status stages members")
         .lean();
 
       // Fetch stages for these projects
