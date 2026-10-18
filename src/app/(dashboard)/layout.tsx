@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { SignOutButton } from "@/components/common/SignOutButton";
 import { NotificationBell } from "@/components/common/NotificationBell";
 import { TabNavigationBar } from "@/components/layout/TabNavigationBar";
+import { DailyReminderModal } from "@/components/daily-update/DailyReminderModal";
 import { Sparkles } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -28,7 +29,7 @@ export default async function DashboardLayout({
   const isAdmin = role === "admin";
   const isManager = role === "manager";
 
-  const homeHref = isAdmin || isManager ? "/dashboard" : "/my-work";
+  const homeHref = isAdmin || isManager ? "/dashboard" : "/daily-update";
 
   const getInitials = (nameStr: string) => {
     return (
@@ -113,6 +114,9 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* Creative Daily Work Log Reminder Popup */}
+      <DailyReminderModal userRole={role} userName={name} />
     </div>
   );
 }

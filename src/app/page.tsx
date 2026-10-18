@@ -14,8 +14,10 @@ export default async function RootPage() {
   const role = (session.user as any).role;
   if (role === "admin") {
     redirect("/dashboard");
+  } else if (role === "manager") {
+    redirect("/dashboard");
   } else {
-    redirect("/my-work");
+    redirect("/daily-update");
   }
 }
 

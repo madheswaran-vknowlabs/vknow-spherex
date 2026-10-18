@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   Layers,
+  Clock,
 } from "lucide-react";
 
 interface TabNavigationBarProps {
@@ -55,6 +56,7 @@ export function TabNavigationBar({ user }: TabNavigationBarProps) {
   const navLinks = isAdmin
     ? [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Daily Work Tracker", href: "/daily-update", icon: Clock },
         { label: "Projects & Tasks", href: "/projects", icon: FolderKanban },
         { label: "Team Reports", href: "/reports", icon: FileBarChart2 },
         { label: "Discrepancies", href: "/discrepancies", icon: AlertTriangle },
@@ -64,12 +66,14 @@ export function TabNavigationBar({ user }: TabNavigationBarProps) {
     : isManager
     ? [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Daily Work Tracker", href: "/daily-update", icon: Clock },
         { label: "Projects & Tasks", href: "/projects", icon: FolderKanban },
         { label: "Team Reports", href: "/reports", icon: FileBarChart2 },
         { label: "Discrepancies", href: "/discrepancies", icon: AlertTriangle },
         { label: "My Team", href: "/admin/users", icon: Users },
       ]
     : [
+        { label: "Daily Work Update", href: "/daily-update", icon: Clock },
         { label: "My Work", href: "/my-work", icon: CheckSquare },
         { label: "My Reports", href: "/my-reports", icon: FileBarChart2 },
       ];

@@ -8,3 +8,4 @@ export * from "./ReportSnapshot";
 export * from "./AuditLog";
 export * from "./Notification";
 export * from "./Setting";
+export * from "./DailyWorkUpdate";
