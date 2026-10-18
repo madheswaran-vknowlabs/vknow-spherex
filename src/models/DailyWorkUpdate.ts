@@ -29,6 +29,9 @@ export interface IDailyTaskItem {
   doubts?: IDailyTaskDoubt[];
 }
 
+export type WorkLocation = "In Office" | "Work From Home" | "Client Site";
+export type DayType = "Work Day" | "Non Work Day" | "Festival Day";
+
 export interface IDailyWorkUpdate extends Document {
   userId: mongoose.Types.ObjectId;
   userName: string;
@@ -39,6 +42,8 @@ export interface IDailyWorkUpdate extends Document {
   date: Date;
   dateString: string; // "YYYY-MM-DD"
   status: "submitted" | "on_leave" | "pending";
+  workLocation: WorkLocation;
+  dayType: DayType;
   leaveType?: "Casual Leave" | "Sick Leave" | "Paid Time Off" | "Holiday" | "Other" | null;
   leaveReason?: string;
   totalHours: number;
@@ -99,6 +104,18 @@ const DailyWorkUpdateSchema = new Schema<IDailyWorkUpdate>(
       type: String,
       enum: ["submitted", "on_leave", "pending"],
       default: "submitted",
+      index: true,
+    },
+    workLocation: {
+      type: String,
+      enum: ["In Office", "Work From Home", "Client Site"],
+      default: "In Office",
+      index: true,
+    },
+    dayType: {
+      type: String,
+      enum: ["Work Day", "Non Work Day", "Festival Day"],
+      default: "Work Day",
       index: true,
     },
     leaveType: {

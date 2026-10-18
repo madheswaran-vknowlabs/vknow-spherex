@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import { Project, Stage, Task, Discrepancy, WeeklyUpdate, User } from "@/models";
+import { Project, Stage, Task, Discrepancy, WeeklyUpdate, User, DailyWorkUpdate } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { generateConsolidatedPDF, generateIndividualPDF } from "@/lib/reports/pdf-generator";
 import { format, subWeeks, subMonths, subYears } from "date-fns";
@@ -16,10 +16,11 @@ export async function GET(req: NextRequest) {
     const period = searchParams.get("period") || "all";
     const selectedProjectId = searchParams.get("projectId");
     const requestedUserId = searchParams.get("userId");
-    const reportType = searchParams.get("type") || (user.role === "admin" ? "consolidated" : "individual");
-
     const isAdmin = user.role === "admin";
-    const targetUserId = isAdmin ? requestedUserId : user.id;
+    const isManager = user.role === "manager";
+    const canManage = isAdmin || isManager;
+    const reportType = searchParams.get("type") || (canManage ? "consolidated" : "individual");
+    const targetUserId = canManage ? requestedUserId : user.id;
 
     const now = new Date();
     let dateFilter: any = null;
@@ -36,8 +37,10 @@ export async function GET(req: NextRequest) {
     }
 
     const projectQuery: any = { isArchived: false };
-    if (!isAdmin) {
+    if (!isAdmin && !isManager) {
       projectQuery.members = user.id;
+    } else if (isManager && !selectedProjectId) {
+      projectQuery.$or = [{ members: user.id }, { createdBy: user.id }];
     }
     if (selectedProjectId && selectedProjectId !== "ALL") {
       projectQuery._id = selectedProjectId;
@@ -59,7 +62,21 @@ export async function GET(req: NextRequest) {
       weeklyQuery.weekStartDate = dateFilter;
     }
 
-    const [tasks, stages, discrepancies, weeklyUpdates] = await Promise.all([
+    // Daily Work Updates Query
+    const dailyQuery: any = {};
+    if (targetUserId && targetUserId !== "ALL") {
+      dailyQuery.userId = targetUserId;
+    } else if (user.role === "manager") {
+      const myEmployees = await User.find({
+        $or: [{ createdBy: user.id }, { managerId: user.id }, { _id: user.id }],
+      }).select("_id");
+      dailyQuery.userId = { $in: myEmployees.map((e) => e._id) };
+    }
+    if (dateFilter) {
+      dailyQuery.date = dateFilter;
+    }
+
+    const [tasks, stages, discrepancies, weeklyUpdates, dailyWorkUpdates] = await Promise.all([
       Task.find(taskQuery)
         .populate("projectId", "name code client")
         .populate("stageId", "name order")
@@ -80,6 +97,7 @@ export async function GET(req: NextRequest) {
         .populate("projectId", "name code")
         .sort({ weekStartDate: -1 })
         .lean(),
+      DailyWorkUpdate.find(dailyQuery).sort({ date: -1 }).lean(),
     ]);
 
     const totalEst = tasks.reduce((acc, t) => acc + (t.estimatedHours || 0), 0);
@@ -103,6 +121,7 @@ export async function GET(req: NextRequest) {
         },
         tasks,
         weeklyUpdates,
+        dailyWorkUpdates,
         periodLabel,
       });
       fileName = `VKnow-${(targetUserDoc?.name || user.name).replace(/\s+/g, "_")}-Report.pdf`;
@@ -127,6 +146,7 @@ export async function GET(req: NextRequest) {
         tasks,
         weeklyUpdates,
         discrepancies,
+        dailyWorkUpdates,
         periodLabel,
         generatedBy: user.name,
       });

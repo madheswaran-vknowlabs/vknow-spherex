@@ -70,7 +70,8 @@ export default function AdminReportsPage() {
   };
 
   useEffect(() => {
-    if (status === "authenticated" && (session?.user as any)?.role === "admin") {
+    const role = (session?.user as any)?.role;
+    if (status === "authenticated" && (role === "admin" || role === "manager")) {
       fetchReports();
     }
   }, [period, selectedProjectId, selectedUserId, session, status]);
@@ -86,6 +87,11 @@ export default function AdminReportsPage() {
       params.append("type", "consolidated");
     }
     window.open(`/api/reports/export/excel?${params.toString()}`, "_blank");
+  };
+
+  const handleDownloadAttendanceExcel = () => {
+    const attPeriod = period === "weekly" ? "weekly" : "monthly";
+    window.open(`/api/reports/export/excel?type=attendance&period=${attPeriod}`, "_blank");
   };
 
   const handleDownloadPDF = () => {
@@ -166,16 +172,26 @@ export default function AdminReportsPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Button
             onClick={handleDownloadExcel}
-            className="rounded-xl bg-[#00b0ef] hover:bg-[#009ad4] text-white font-semibold text-sm h-10 px-4 flex items-center gap-2 shadow-xs"
+            className="rounded-xl bg-[#00b0ef] hover:bg-[#009ad4] text-white font-semibold text-sm h-10 px-4 flex items-center gap-2 shadow-xs cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Download Excel (.xlsx)</span>
           </Button>
 
           <Button
+            onClick={handleDownloadAttendanceExcel}
+            variant="outline"
+            className="rounded-xl border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-semibold text-sm h-10 px-4 flex items-center gap-2 cursor-pointer"
+            title="Download Weekly or Monthly Attendance Register Matrix & Consolidated Counts"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+            <span>Attendance Sheet (.xlsx)</span>
+          </Button>
+
+          <Button
             onClick={handleDownloadPDF}
             variant="outline"
-            className="rounded-xl border-[#00b0ef]/40 text-[#007ea8] dark:text-[#00b0ef] hover:bg-[#00b0ef]/10 font-semibold text-sm h-10 px-4 flex items-center gap-2"
+            className="rounded-xl border-[#00b0ef]/40 text-[#007ea8] dark:text-[#00b0ef] hover:bg-[#00b0ef]/10 font-semibold text-sm h-10 px-4 flex items-center gap-2 cursor-pointer"
           >
             <FileText className="w-4 h-4" />
             <span>Download PDF (.pdf)</span>
@@ -185,7 +201,7 @@ export default function AdminReportsPage() {
             onClick={handleCreateSnapshot}
             disabled={snapshotLoading}
             variant="ghost"
-            className="rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold h-10 px-3.5 flex items-center gap-2"
+            className="rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold h-10 px-3.5 flex items-center gap-2 cursor-pointer"
             title="Freeze and archive historical snapshot"
           >
             <Archive className="w-4 h-4 text-slate-400" />

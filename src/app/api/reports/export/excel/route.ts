@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import { Project, Stage, Task, Discrepancy, WeeklyUpdate, User } from "@/models";
+import { Project, Stage, Task, Discrepancy, WeeklyUpdate, User, DailyWorkUpdate } from "@/models";
 import { requireAuth } from "@/lib/auth";
-import { buildConsolidatedExcel, buildIndividualExcel } from "@/lib/reports/excel-generator";
-import { format, subWeeks, subMonths, subYears } from "date-fns";
+import { buildConsolidatedExcel, buildIndividualExcel, buildAttendanceExcel } from "@/lib/reports/excel-generator";
+import { format, subWeeks, subMonths, subYears, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +16,11 @@ export async function GET(req: NextRequest) {
     const period = searchParams.get("period") || "all";
     const selectedProjectId = searchParams.get("projectId");
     const requestedUserId = searchParams.get("userId");
-    const reportType = searchParams.get("type") || (user.role === "admin" ? "consolidated" : "individual");
-
     const isAdmin = user.role === "admin";
-    const targetUserId = isAdmin ? requestedUserId : user.id;
+    const isManager = user.role === "manager";
+    const canManage = isAdmin || isManager;
+    const reportType = searchParams.get("type") || (canManage ? "consolidated" : "individual");
+    const targetUserId = canManage ? requestedUserId : user.id;
 
     // Period calculation
     const now = new Date();
@@ -38,8 +39,10 @@ export async function GET(req: NextRequest) {
 
     // Projects Query
     const projectQuery: any = { isArchived: false };
-    if (!isAdmin) {
+    if (!isAdmin && !isManager) {
       projectQuery.members = user.id;
+    } else if (isManager && !selectedProjectId) {
+      projectQuery.$or = [{ members: user.id }, { createdBy: user.id }];
     }
     if (selectedProjectId && selectedProjectId !== "ALL") {
       projectQuery._id = selectedProjectId;
@@ -63,7 +66,21 @@ export async function GET(req: NextRequest) {
       weeklyQuery.weekStartDate = dateFilter;
     }
 
-    const [tasks, stages, discrepancies, weeklyUpdates] = await Promise.all([
+    // Daily Work Updates Query
+    const dailyQuery: any = {};
+    if (targetUserId && targetUserId !== "ALL") {
+      dailyQuery.userId = targetUserId;
+    } else if (user.role === "manager") {
+      const myEmployees = await User.find({
+        $or: [{ createdBy: user.id }, { managerId: user.id }, { _id: user.id }],
+      }).select("_id");
+      dailyQuery.userId = { $in: myEmployees.map((e) => e._id) };
+    }
+    if (dateFilter) {
+      dailyQuery.date = dateFilter;
+    }
+
+    const [tasks, stages, discrepancies, weeklyUpdates, dailyWorkUpdates] = await Promise.all([
       Task.find(taskQuery)
         .populate("projectId", "name code client")
         .populate("stageId", "name order")
@@ -84,6 +101,7 @@ export async function GET(req: NextRequest) {
         .populate("projectId", "name code")
         .sort({ weekStartDate: -1 })
         .lean(),
+      DailyWorkUpdate.find(dailyQuery).sort({ date: -1 }).lean(),
     ]);
 
     const totalEst = tasks.reduce((acc, t) => acc + (t.estimatedHours || 0), 0);
@@ -95,7 +113,147 @@ export async function GET(req: NextRequest) {
     let excelBuffer: Buffer;
     let fileName = `VKnow-SphereX-Report-${format(new Date(), "yyyyMMdd")}.xlsx`;
 
-    if (!isAdmin || reportType === "individual") {
+    if (reportType === "attendance") {
+      const granularity = searchParams.get("granularity") || period || "monthly";
+      const baseDate = searchParams.get("date") ? parseISO(searchParams.get("date")!) : new Date();
+
+      let startDateObj: Date;
+      let endDateObj: Date;
+
+      if (granularity === "weekly" || granularity === "week") {
+        startDateObj = startOfWeek(baseDate, { weekStartsOn: 1 });
+        endDateObj = endOfWeek(baseDate, { weekStartsOn: 1 });
+      } else if (granularity === "monthly" || granularity === "month") {
+        startDateObj = startOfMonth(baseDate);
+        endDateObj = endOfMonth(baseDate);
+      } else {
+        startDateObj = baseDate;
+        endDateObj = baseDate;
+      }
+
+      const daysList = eachDayOfInterval({ start: startDateObj, end: endDateObj }).map((d) => format(d, "yyyy-MM-dd"));
+      const startDateStr = format(startDateObj, "yyyy-MM-dd");
+      const endDateStr = format(endDateObj, "yyyy-MM-dd");
+
+      // Staff list to include
+      let staffList: any[] = [];
+      if (isAdmin) {
+        staffList = await User.find({ isActive: true, role: { $in: ["employee", "manager"] } })
+          .select("name email role department avatar")
+          .sort({ name: 1 })
+          .lean();
+      } else if (user.role === "manager") {
+        staffList = await User.find({
+          isActive: true,
+          $or: [{ managerId: user.id }, { createdBy: user.id }, { role: "employee" }],
+        })
+          .select("name email role department avatar")
+          .sort({ name: 1 })
+          .lean();
+      } else {
+        staffList = [user];
+      }
+
+      const staffIds = staffList.map((s) => s._id);
+      const attUpdates = await DailyWorkUpdate.find({
+        userId: { $in: staffIds },
+        dateString: { $gte: startDateStr, $lte: endDateStr },
+      }).lean();
+
+      let totalLoggedHours = 0;
+      let inOfficeCount = 0;
+      let wfhCount = 0;
+      let clientSiteCount = 0;
+      let workDayCount = 0;
+      let festivalDayCount = 0;
+      let nonWorkDayCount = 0;
+      let leaveCount = 0;
+
+      const staffConsolidated = staffList.map((staff) => {
+        const userUpdates = attUpdates.filter((u) => u.userId.toString() === staff._id.toString());
+        let sInOffice = 0;
+        let sWfh = 0;
+        let sClientSite = 0;
+        let sWorkDays = 0;
+        let sFest = 0;
+        let sNonWork = 0;
+        let sLeaves = 0;
+        let sHours = 0;
+
+        userUpdates.forEach((u) => {
+          if (u.status === "on_leave") {
+            sLeaves++;
+            leaveCount++;
+          } else {
+            if (u.workLocation === "Work From Home") {
+              sWfh++;
+              wfhCount++;
+            } else if (u.workLocation === "Client Site") {
+              sClientSite++;
+              clientSiteCount++;
+            } else {
+              sInOffice++;
+              inOfficeCount++;
+            }
+
+            if (u.dayType === "Festival Day") {
+              sFest++;
+              festivalDayCount++;
+            } else if (u.dayType === "Non Work Day") {
+              sNonWork++;
+              nonWorkDayCount++;
+            } else {
+              sWorkDays++;
+              workDayCount++;
+            }
+
+            sHours += u.totalHours || 0;
+            totalLoggedHours += u.totalHours || 0;
+          }
+        });
+
+        return {
+          employee: staff,
+          inOfficeDays: sInOffice,
+          wfhDays: sWfh,
+          clientSiteDays: sClientSite,
+          workDays: sWorkDays,
+          festivalDays: sFest,
+          nonWorkDays: sNonWork,
+          leaveDays: sLeaves,
+          totalHours: sHours,
+          avgHoursPerDay: sWorkDays > 0 ? Math.round((sHours / sWorkDays) * 10) / 10 : 0,
+          dailyRecords: userUpdates,
+        };
+      });
+
+      const teamSummary = {
+        totalMembers: staffList.length,
+        totalLoggedHours,
+        inOfficeCount,
+        wfhCount,
+        clientSiteCount,
+        workDayCount,
+        festivalDayCount,
+        nonWorkDayCount,
+        leaveCount,
+        avgHoursPerWorkDay: workDayCount > 0 ? Math.round((totalLoggedHours / workDayCount) * 10) / 10 : 0,
+      };
+
+      excelBuffer = await buildAttendanceExcel({
+        period: granularity,
+        periodLabel: `${granularity.toUpperCase()} Attendance (${startDateStr} to ${endDateStr})`,
+        startDateStr,
+        endDateStr,
+        daysList,
+        teamSummary,
+        staffConsolidated,
+        updates: attUpdates,
+        generatedBy: user.name,
+      });
+
+      fileName = `VKnow-SphereX-Attendance-${granularity}-${startDateStr}.xlsx`;
+    } else if (!isAdmin || reportType === "individual") {
       // Individual Report for the requested or current user
       const targetUserDoc = targetUserId ? await User.findById(targetUserId).lean() : user;
       excelBuffer = await buildIndividualExcel({
@@ -108,11 +266,12 @@ export async function GET(req: NextRequest) {
         },
         tasks,
         weeklyUpdates,
+        dailyWorkUpdates,
         periodLabel,
       });
       fileName = `VKnow-${(targetUserDoc?.name || user.name).replace(/\s+/g, "_")}-Report.xlsx`;
     } else {
-      // Consolidated Report for Admin
+      // Consolidated Report for Admin / Manager
       excelBuffer = await buildConsolidatedExcel({
         summary: {
           totalProjects: projects.length,
@@ -133,6 +292,7 @@ export async function GET(req: NextRequest) {
         tasks,
         weeklyUpdates,
         discrepancies,
+        dailyWorkUpdates,
         periodLabel,
         generatedBy: user.name,
       });

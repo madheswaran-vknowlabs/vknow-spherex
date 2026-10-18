@@ -56,6 +56,7 @@ export async function buildConsolidatedExcel(reportData: {
   tasks: any[];
   weeklyUpdates: any[];
   discrepancies: any[];
+  dailyWorkUpdates?: any[];
   auditLogs?: any[];
   periodLabel?: string;
   generatedBy?: string;
@@ -323,6 +324,174 @@ export async function buildConsolidatedExcel(reportData: {
   discSheet.autoFilter = { from: "A1", to: `J${reportData.discrepancies.length + 1}` };
   autoFitColumns(discSheet);
 
+  // -------------------------------------------------------------
+  // Sheet 7: Daily Work Updates & Task Logs
+  // -------------------------------------------------------------
+  if (reportData.dailyWorkUpdates && reportData.dailyWorkUpdates.length > 0) {
+    const dailySheet = wb.addWorksheet("Daily Work Updates", {
+      views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
+    });
+
+    const dailyHeaders = [
+      "Date",
+      "Employee Name",
+      "Email",
+      "Department",
+      "Role",
+      "Work Location",
+      "Day Type",
+      "Status",
+      "Leave Type / Reason",
+      "Day Total Hours",
+      "Project Code",
+      "Project Name",
+      "Module / Stage",
+      "Deliverable / Task",
+      "Time Interval",
+      "Task Hours",
+      "Task Status",
+      "Blockers / Notes",
+    ];
+    const dailyHeaderRow = dailySheet.addRow(dailyHeaders);
+    formatHeaderRow(dailyHeaderRow);
+
+    reportData.dailyWorkUpdates.forEach((u) => {
+      if (u.tasks && u.tasks.length > 0) {
+        u.tasks.forEach((t: any) => {
+          const r = dailySheet.addRow([
+            u.dateString || (u.date ? format(new Date(u.date), "yyyy-MM-dd") : "-"),
+            u.userName || "-",
+            u.userEmail || "-",
+            u.department || "Engineering",
+            u.userRole?.toUpperCase() || "-",
+            u.workLocation || "In Office",
+            u.dayType || "Work Day",
+            u.status === "on_leave" ? "On Leave" : "Present",
+            u.status === "on_leave" ? u.leaveType || u.leaveReason || "On Leave" : "-",
+            u.totalHours || 0,
+            t.projectId?.code || "-",
+            t.projectName || "-",
+            t.stageName || "-",
+            t.title || "-",
+            t.startTime && t.endTime ? `${t.startTime} - ${t.endTime}` : "-",
+            t.hours || 0,
+            t.taskStatus || "Completed",
+            t.blockers || u.generalNotes || "-",
+          ]);
+          r.eachCell((c) => (c.border = BORDER_THIN));
+        });
+      } else {
+        const r = dailySheet.addRow([
+          u.dateString || (u.date ? format(new Date(u.date), "yyyy-MM-dd") : "-"),
+          u.userName || "-",
+          u.userEmail || "-",
+          u.department || "Engineering",
+          u.userRole?.toUpperCase() || "-",
+          u.workLocation || "In Office",
+          u.dayType || (u.status === "on_leave" ? "Non Work Day" : "Work Day"),
+          u.status === "on_leave" ? "On Leave" : "Present",
+          u.status === "on_leave" ? u.leaveType || u.leaveReason || "On Leave" : "-",
+          u.totalHours || 0,
+          "-",
+          "-",
+          "-",
+          u.status === "on_leave" ? `Leave: ${u.leaveType || "Scheduled"}` : "No deliverables listed",
+          "-",
+          0,
+          u.status === "on_leave" ? "On Leave" : "Completed",
+          u.leaveReason || u.generalNotes || "-",
+        ]);
+        r.eachCell((c) => (c.border = BORDER_THIN));
+      }
+    });
+
+    autoFitColumns(dailySheet);
+  }
+
+  // -------------------------------------------------------------
+  // Sheet 8: Consolidated Attendance Summary
+  // -------------------------------------------------------------
+  if (reportData.dailyWorkUpdates && reportData.dailyWorkUpdates.length > 0) {
+    const attSheet = wb.addWorksheet("Consolidated Attendance", {
+      views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
+    });
+
+    const attHeaders = [
+      "Employee Name",
+      "Email",
+      "Department",
+      "Role",
+      "In Office Days",
+      "Work From Home Days",
+      "Client Site Days",
+      "Work Days Count",
+      "Non Work Days Count",
+      "Festival Days Count",
+      "Leave Days Count",
+      "Total Logged Hours",
+      "Avg Hours / Work Day",
+    ];
+    const attHeaderRow = attSheet.addRow(attHeaders);
+    formatHeaderRow(attHeaderRow);
+
+    const userMap = new Map<string, any>();
+    reportData.dailyWorkUpdates.forEach((u) => {
+      const uId = u.userId?.toString() || u.userEmail;
+      if (!userMap.has(uId)) {
+        userMap.set(uId, {
+          name: u.userName || "-",
+          email: u.userEmail || "-",
+          department: u.department || "Engineering",
+          role: u.userRole?.toUpperCase() || "EMPLOYEE",
+          inOffice: 0,
+          wfh: 0,
+          clientSite: 0,
+          workDays: 0,
+          nonWorkDays: 0,
+          festivalDays: 0,
+          leaves: 0,
+          totalHours: 0,
+        });
+      }
+      const record = userMap.get(uId);
+      if (u.status === "on_leave") {
+        record.leaves++;
+      } else {
+        if (u.workLocation === "Work From Home") record.wfh++;
+        else if (u.workLocation === "Client Site") record.clientSite++;
+        else record.inOffice++;
+
+        if (u.dayType === "Festival Day") record.festivalDays++;
+        else if (u.dayType === "Non Work Day") record.nonWorkDays++;
+        else record.workDays++;
+
+        record.totalHours += u.totalHours || 0;
+      }
+    });
+
+    Array.from(userMap.values()).forEach((emp) => {
+      const avg = emp.workDays > 0 ? Math.round((emp.totalHours / emp.workDays) * 10) / 10 : 0;
+      const r = attSheet.addRow([
+        emp.name,
+        emp.email,
+        emp.department,
+        emp.role,
+        emp.inOffice,
+        emp.wfh,
+        emp.clientSite,
+        emp.workDays,
+        emp.nonWorkDays,
+        emp.festivalDays,
+        emp.leaves,
+        emp.totalHours,
+        avg,
+      ]);
+      r.eachCell((c) => (c.border = BORDER_THIN));
+    });
+
+    autoFitColumns(attSheet);
+  }
+
   // Write and return buffer
   const rawBuffer = await wb.xlsx.writeBuffer();
   return Buffer.from(rawBuffer);
@@ -336,6 +505,7 @@ export async function buildIndividualExcel(userData: {
   summary: any;
   tasks: any[];
   weeklyUpdates: any[];
+  dailyWorkUpdates?: any[];
   periodLabel?: string;
 }): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
@@ -464,6 +634,295 @@ export async function buildIndividualExcel(userData: {
 
   weeklySheet.autoFilter = { from: "A1", to: `H${userData.weeklyUpdates.length + 1}` };
   autoFitColumns(weeklySheet);
+
+  // -------------------------------------------------------------
+  // Sheet 4: My Daily Work Updates
+  // -------------------------------------------------------------
+  if (userData.dailyWorkUpdates && userData.dailyWorkUpdates.length > 0) {
+    const dailySheet = wb.addWorksheet("My Daily Work Updates", {
+      views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
+    });
+
+    const dailyHeaders = [
+      "Date",
+      "Work Location",
+      "Day Type",
+      "Status",
+      "Leave Type / Reason",
+      "Total Day Hours",
+      "Project Code",
+      "Project Name",
+      "Module / Stage",
+      "Deliverable / Task",
+      "Time (From - To)",
+      "Task Hours",
+      "Task Status",
+      "Blockers / Notes",
+    ];
+    const dailyHeaderRow = dailySheet.addRow(dailyHeaders);
+    formatHeaderRow(dailyHeaderRow);
+
+    userData.dailyWorkUpdates.forEach((u) => {
+      if (u.tasks && u.tasks.length > 0) {
+        u.tasks.forEach((t: any) => {
+          const r = dailySheet.addRow([
+            u.dateString || (u.date ? format(new Date(u.date), "yyyy-MM-dd") : "-"),
+            u.workLocation || "In Office",
+            u.dayType || "Work Day",
+            u.status === "on_leave" ? "On Leave" : "Present",
+            u.status === "on_leave" ? u.leaveType || u.leaveReason || "On Leave" : "-",
+            u.totalHours || 0,
+            t.projectId?.code || "-",
+            t.projectName || "-",
+            t.stageName || "-",
+            t.title || "-",
+            t.startTime && t.endTime ? `${t.startTime} - ${t.endTime}` : "-",
+            t.hours || 0,
+            t.taskStatus || "Completed",
+            t.blockers || u.generalNotes || "-",
+          ]);
+          r.eachCell((c) => (c.border = BORDER_THIN));
+        });
+      } else {
+        const r = dailySheet.addRow([
+          u.dateString || (u.date ? format(new Date(u.date), "yyyy-MM-dd") : "-"),
+          u.workLocation || "In Office",
+          u.dayType || (u.status === "on_leave" ? "Non Work Day" : "Work Day"),
+          u.status === "on_leave" ? "On Leave" : "Present",
+          u.status === "on_leave" ? u.leaveType || u.leaveReason || "On Leave" : "-",
+          u.totalHours || 0,
+          "-",
+          "-",
+          "-",
+          u.status === "on_leave" ? `Leave: ${u.leaveType || "Scheduled"}` : "No task deliverables listed",
+          "-",
+          0,
+          u.status === "on_leave" ? "On Leave" : "Completed",
+          u.leaveReason || u.generalNotes || "-",
+        ]);
+        r.eachCell((c) => (c.border = BORDER_THIN));
+      }
+    });
+
+    autoFitColumns(dailySheet);
+  }
+
+  const rawBuffer = await wb.xlsx.writeBuffer();
+  return Buffer.from(rawBuffer);
+}
+
+/**
+ * Builds a dedicated Attendance & Consolidated Workbook for Admin and Managers
+ * Supports Day-wise, Week-wise, and Month-wise attendance reporting
+ */
+export async function buildAttendanceExcel(attendanceData: {
+  period: string; // "day" | "week" | "month"
+  periodLabel: string;
+  startDateStr: string;
+  endDateStr: string;
+  daysList: string[];
+  teamSummary: any;
+  staffConsolidated: any[];
+  updates: any[];
+  generatedBy?: string;
+}): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "VKnow SphereX Attendance Engine";
+  wb.created = new Date();
+
+  // -------------------------------------------------------------
+  // Sheet 1: Consolidated Attendance Summary
+  // -------------------------------------------------------------
+  const summarySheet = wb.addWorksheet("Attendance Summary", {
+    views: [{ showGridLines: true }],
+  });
+
+  summarySheet.mergeCells("A1:G1");
+  const tCell = summarySheet.getCell("A1");
+  tCell.value = `VKNOW SPHEREX — ${attendanceData.period.toUpperCase()} ATTENDANCE SUMMARY`;
+  tCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FF" + BRAND_DARK } };
+  tCell.alignment = { vertical: "middle" };
+  summarySheet.getRow(1).height = 32;
+
+  summarySheet.getCell("A2").value = `Period: ${attendanceData.periodLabel} (${attendanceData.startDateStr} to ${attendanceData.endDateStr}) | Generated by: ${attendanceData.generatedBy || "Manager / Admin"} on ${format(new Date(), "dd MMM yyyy, HH:mm")}`;
+  summarySheet.getCell("A2").font = { italic: true, size: 10, color: { argb: "FF64748B" } };
+
+  summarySheet.addRow([]); // Blank row
+
+  // Summary Metrics Table
+  const s = attendanceData.teamSummary || {};
+  const metrics = [
+    ["Total Staff Members", s.totalMembers || attendanceData.staffConsolidated.length],
+    ["Total Logged Engineering Hours", `${s.totalLoggedHours || 0} hrs`],
+    ["Total In-Office Days", s.inOfficeCount || 0],
+    ["Total Work From Home (WFH) Days", s.wfhCount || 0],
+    ["Total Work Days Logged", s.workDayCount || 0],
+    ["Total Festival / Holiday Days", s.festivalDayCount || 0],
+    ["Total Non-Work / Weekend Days", s.nonWorkDayCount || 0],
+    ["Total Leave Days", s.leaveCount || 0],
+    ["Average Hours / Work Day", `${s.avgHoursPerWorkDay || 0} hrs`],
+  ];
+
+  metrics.forEach(([label, val]) => {
+    const row = summarySheet.addRow([label, val]);
+    row.getCell(1).font = { name: "Calibri", size: 11, bold: true };
+    row.getCell(1).border = BORDER_THIN;
+    row.getCell(2).font = { name: "Calibri", size: 11, color: { argb: "FF" + BRAND_DARK } };
+    row.getCell(2).border = BORDER_THIN;
+  });
+
+  summarySheet.addRow([]); // Blank row
+
+  // Employee Breakdown Table
+  const headerRow = summarySheet.addRow([
+    "Employee Name",
+    "Email",
+    "Department",
+    "Role",
+    "In Office",
+    "Work From Home",
+    "Work Days",
+    "Festival Days",
+    "Non Work Days",
+    "Leave Days",
+    "Total Hours",
+    "Avg Hours / Day",
+  ]);
+  formatHeaderRow(headerRow);
+
+  attendanceData.staffConsolidated.forEach((staff) => {
+    const emp = staff.employee || staff;
+    const r = summarySheet.addRow([
+      emp.name || "-",
+      emp.email || "-",
+      emp.department || "Engineering",
+      emp.role?.toUpperCase() || "EMPLOYEE",
+      staff.inOfficeDays || 0,
+      staff.wfhDays || 0,
+      staff.workDays || 0,
+      staff.festivalDays || 0,
+      staff.nonWorkDays || 0,
+      staff.leaveDays || 0,
+      staff.totalHours || 0,
+      staff.avgHoursPerDay || 0,
+    ]);
+    r.eachCell((c) => (c.border = BORDER_THIN));
+  });
+
+  autoFitColumns(summarySheet);
+
+  // -------------------------------------------------------------
+  // Sheet 2: Attendance Register (Day-by-Day Matrix)
+  // -------------------------------------------------------------
+  const matrixSheet = wb.addWorksheet("Attendance Register", {
+    views: [{ state: "frozen", xSplit: 2, ySplit: 1, showGridLines: true }],
+  });
+
+  const matrixHeaders = [
+    "Employee Name",
+    "Department",
+    ...attendanceData.daysList.map((d) => {
+      try {
+        return format(new Date(d), "dd MMM (EEE)");
+      } catch {
+        return d;
+      }
+    }),
+  ];
+
+  const mHeaderRow = matrixSheet.addRow(matrixHeaders);
+  formatHeaderRow(mHeaderRow);
+
+  attendanceData.staffConsolidated.forEach((staff) => {
+    const emp = staff.employee || staff;
+    const recordsMap = new Map();
+    if (staff.dailyRecords) {
+      staff.dailyRecords.forEach((dr: any) => recordsMap.set(dr.dateString, dr));
+    }
+
+    const rowValues = [
+      emp.name || "-",
+      emp.department || "Engineering",
+      ...attendanceData.daysList.map((dayStr) => {
+        const rec = recordsMap.get(dayStr);
+        if (!rec) return "-";
+        if (rec.status === "on_leave") return `Leave (${rec.leaveType || "Leave"})`;
+        if (rec.dayType === "Festival Day") return `Festival (${rec.totalHours || 0}h)`;
+        if (rec.dayType === "Non Work Day") return `Non-Work (${rec.totalHours || 0}h)`;
+        const loc = rec.workLocation === "Work From Home" ? "WFH" : "Office";
+        return `${loc} (${rec.totalHours || 0}h)`;
+      }),
+    ];
+
+    const r = matrixSheet.addRow(rowValues);
+    r.eachCell((c) => (c.border = BORDER_THIN));
+  });
+
+  autoFitColumns(matrixSheet);
+
+  // -------------------------------------------------------------
+  // Sheet 3: Detailed Deliverable Task Logs
+  // -------------------------------------------------------------
+  const logsSheet = wb.addWorksheet("Detailed Task Logs", {
+    views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
+  });
+
+  const logHeaders = [
+    "Date",
+    "Employee",
+    "Department",
+    "Work Location",
+    "Day Type",
+    "Project",
+    "Module / Stage",
+    "Deliverable / Task",
+    "Time (From - To)",
+    "Hours",
+    "Status",
+    "Notes / Blockers",
+  ];
+  const logHeaderRow = logsSheet.addRow(logHeaders);
+  formatHeaderRow(logHeaderRow);
+
+  attendanceData.updates.forEach((u) => {
+    if (u.tasks && u.tasks.length > 0) {
+      u.tasks.forEach((t: any) => {
+        const r = logsSheet.addRow([
+          u.dateString || "-",
+          u.userName || "-",
+          u.department || "Engineering",
+          u.workLocation || "In Office",
+          u.dayType || "Work Day",
+          t.projectName || "-",
+          t.stageName || "-",
+          t.title || "-",
+          t.startTime && t.endTime ? `${t.startTime} - ${t.endTime}` : "-",
+          t.hours || 0,
+          t.taskStatus || "Completed",
+          t.blockers || u.generalNotes || "-",
+        ]);
+        r.eachCell((c) => (c.border = BORDER_THIN));
+      });
+    } else {
+      const r = logsSheet.addRow([
+        u.dateString || "-",
+        u.userName || "-",
+        u.department || "Engineering",
+        u.workLocation || "In Office",
+        u.dayType || (u.status === "on_leave" ? "Non Work Day" : "Work Day"),
+        "-",
+        "-",
+        u.status === "on_leave" ? `Leave: ${u.leaveType || "Scheduled"}` : "General Logging",
+        "-",
+        u.totalHours || 0,
+        u.status === "on_leave" ? "On Leave" : "Completed",
+        u.leaveReason || u.generalNotes || "-",
+      ]);
+      r.eachCell((c) => (c.border = BORDER_THIN));
+    }
+  });
+
+  autoFitColumns(logsSheet);
 
   const rawBuffer = await wb.xlsx.writeBuffer();
   return Buffer.from(rawBuffer);

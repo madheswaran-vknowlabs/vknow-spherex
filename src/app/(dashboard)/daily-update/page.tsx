@@ -27,6 +27,14 @@ import {
   Loader2,
   ShieldAlert,
   Info,
+  Building2,
+  Home,
+  MapPin,
+  CalendarDays,
+  Download,
+  FileSpreadsheet,
+  BarChart3,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,8 +95,15 @@ export default function DailyUpdatePage() {
   const [generalNotes, setGeneralNotes] = useState<string>("");
   const [leaveType, setLeaveType] = useState<string>("Casual Leave");
   const [leaveReason, setLeaveReason] = useState<string>("");
+  const [workLocation, setWorkLocation] = useState<"In Office" | "Work From Home" | "Client Site">("In Office");
+  const [dayType, setDayType] = useState<"Work Day" | "Non Work Day" | "Festival Day">("Work Day");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Manager & Admin View Tabs & Period Filter
+  const [activeTab, setActiveTab] = useState<"tracker" | "attendance">("tracker");
+  const [attendancePeriod, setAttendancePeriod] = useState<"day" | "week" | "month">("week");
+  const [attendanceSearch, setAttendanceSearch] = useState<string>("");
 
   // New Task Inline Entry Inputs
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -114,9 +129,9 @@ export default function DailyUpdatePage() {
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
   const [replySubmitting, setReplySubmitting] = useState(false);
 
-  const fetchDailyData = (dateStr: string) => {
+  const fetchDailyData = (dateStr: string, periodStr: string = attendancePeriod) => {
     setLoading(true);
-    fetch(`/api/daily-updates?date=${dateStr}`)
+    fetch(`/api/daily-updates?date=${dateStr}&period=${periodStr}`)
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data) {
@@ -124,6 +139,8 @@ export default function DailyUpdatePage() {
           if (res.data.role === "employee") {
             const update = res.data.update;
             if (update) {
+              setWorkLocation(update.workLocation || "In Office");
+              setDayType(update.dayType || "Work Day");
               if (update.status === "on_leave") {
                 setEntryMode("leave");
                 setLeaveType(update.leaveType || "Casual Leave");
@@ -136,6 +153,8 @@ export default function DailyUpdatePage() {
               }
             } else {
               setEntryMode("tasks");
+              setWorkLocation("In Office");
+              setDayType("Work Day");
               setTasksList([]);
               setGeneralNotes("");
               setLeaveReason("");
@@ -153,8 +172,13 @@ export default function DailyUpdatePage() {
   };
 
   useEffect(() => {
-    fetchDailyData(selectedDate);
-  }, [selectedDate]);
+    fetchDailyData(selectedDate, attendancePeriod);
+  }, [selectedDate, attendancePeriod]);
+
+  // Quick Export Attendance Excel
+  const handleExportAttendanceExcel = () => {
+    window.open(`/api/daily-updates?date=${selectedDate}&period=${attendancePeriod}&export=excel`, "_blank");
+  };
 
   // When selected project changes, update default stage
   useEffect(() => {
@@ -233,6 +257,8 @@ export default function DailyUpdatePage() {
         status: entryMode === "leave" ? "on_leave" : "submitted",
         leaveType: entryMode === "leave" ? leaveType : null,
         leaveReason: entryMode === "leave" ? leaveReason : "",
+        workLocation,
+        dayType,
         tasks: entryMode === "tasks" ? tasksList : [],
         generalNotes: entryMode === "tasks" ? generalNotes : "",
       };
@@ -451,13 +477,23 @@ export default function DailyUpdatePage() {
 
           {/* Current Status Pill Bar */}
           <div className="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status for {selectedDate}:</span>
               {data?.update?.status === "submitted" ? (
-                <Badge variant="cyan" className="font-extrabold text-xs px-3 py-1 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Submitted • {data.update.totalHours} Hours Logged</span>
-                </Badge>
+                <>
+                  <Badge variant="cyan" className="font-extrabold text-xs px-3 py-1 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Submitted • {data.update.totalHours} Hours Logged</span>
+                  </Badge>
+                  <Badge variant="outline" className="font-bold text-xs px-2.5 py-1 border-sky-300 text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                    {data.update.workLocation === "Work From Home" ? <Home className="w-3 h-3 text-sky-500" /> : <Building2 className="w-3 h-3 text-sky-500" />}
+                    <span>{data.update.workLocation || "In Office"}</span>
+                  </Badge>
+                  <Badge variant="outline" className="font-bold text-xs px-2.5 py-1 border-purple-300 text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                    <CalendarDays className="w-3 h-3 text-purple-500" />
+                    <span>{data.update.dayType || "Work Day"}</span>
+                  </Badge>
+                </>
               ) : data?.update?.status === "on_leave" ? (
                 <Badge className="font-extrabold text-xs px-3 py-1 bg-purple-500 text-white flex items-center gap-1.5">
                   <Palmtree className="w-3.5 h-3.5" />
@@ -513,6 +549,41 @@ export default function DailyUpdatePage() {
                   <span className="text-xs text-slate-400">
                     Smart time auto-formats (e.g. 1000 &rarr; 10:00 AM)
                   </span>
+                </div>
+
+                {/* Row 0: Work Location & Day Type Dropdowns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-[#00b0ef]" />
+                      <span>Work Location (Attendance Mode) *</span>
+                    </label>
+                    <select
+                      value={workLocation}
+                      onChange={(e) => setWorkLocation(e.target.value as any)}
+                      className="w-full h-11 px-3.5 text-xs sm:text-sm font-bold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#00b0ef] outline-hidden cursor-pointer"
+                    >
+                      <option value="In Office">🏢 In Office (Physical Workplace)</option>
+                      <option value="Work From Home">🏠 Work From Home (WFH Remote)</option>
+                      <option value="Client Site">📍 Client Site (On-site Visit)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                      <CalendarDays className="w-3.5 h-3.5 text-[#00b0ef]" />
+                      <span>Day Type *</span>
+                    </label>
+                    <select
+                      value={dayType}
+                      onChange={(e) => setDayType(e.target.value as any)}
+                      className="w-full h-11 px-3.5 text-xs sm:text-sm font-bold rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#00b0ef] outline-hidden cursor-pointer"
+                    >
+                      <option value="Work Day">💼 Work Day (Standard Operating Day)</option>
+                      <option value="Non Work Day">🏖️ Non Work Day (Weekend / Weekly Off)</option>
+                      <option value="Festival Day">🎉 Festival Day (Public / Gazetted Holiday)</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Row 1: Project & Stage Dropdown */}
@@ -914,227 +985,623 @@ export default function DailyUpdatePage() {
         </div>
       ) : (
         /* ========================================================= */
-        /* CASE 2 & 3: MANAGER & ADMIN VIEW (TEAM DAILY TRACKER)     */
+        /* CASE 2 & 3: MANAGER & ADMIN VIEW                          */
         /* ========================================================= */
         <div className="space-y-6">
-          {/* Summary Metric KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Total Team
-              </span>
-              <div className="text-2xl font-black text-slate-900 dark:text-white">
-                {data?.summary?.totalMembers || 0}
-              </div>
+          {/* View Mode Switcher & Period Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            {/* Tab Switcher */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setActiveTab("tracker")}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === "tracker"
+                    ? "bg-[#00b0ef] text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Daily Tracker &amp; Review</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("attendance");
+                  fetchDailyData(selectedDate, attendancePeriod);
+                }}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === "attendance"
+                    ? "bg-[#00b0ef] text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Attendance &amp; Consolidated Sheet</span>
+              </button>
             </div>
 
-            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">
-                Submitted
-              </span>
-              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                {data?.summary?.submittedCount || 0}
-              </div>
-            </div>
+            {/* Attendance Mode Period Selector & Export */}
+            {activeTab === "attendance" && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                  {(["day", "week", "month"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => {
+                        setAttendancePeriod(p);
+                        fetchDailyData(selectedDate, p);
+                      }}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg uppercase tracking-wider transition-all cursor-pointer ${
+                        attendancePeriod === p
+                          ? "bg-[#00b0ef] text-white shadow-xs"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      {p === "day" ? "Day Wise" : p === "week" ? "Week Wise" : "Month Wise"}
+                    </button>
+                  ))}
+                </div>
 
-            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 block mb-1">
-                On Leave
-              </span>
-              <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-                {data?.summary?.leaveCount || 0}
+                <Button
+                  type="button"
+                  onClick={handleExportAttendanceExcel}
+                  className="h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  title="Download Excel Attendance Register with Consolidated Counts"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Attendance Excel</span>
+                </Button>
               </div>
-            </div>
-
-            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-500 block mb-1">
-                Pending Log
-              </span>
-              <div className="text-2xl font-black text-amber-500">
-                {data?.summary?.pendingCount || 0}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs col-span-2 sm:col-span-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#00b0ef] block mb-1">
-                Total Hours
-              </span>
-              <div className="text-2xl font-black text-[#00b0ef]">
-                {data?.summary?.totalHours || 0}h
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Team Member Daily Reports List */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#00b0ef]" />
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                  Team Daily Progress for {format(parseISO(selectedDate), "dd MMMM yyyy")}
-                </h3>
+          {/* ========================================================= */}
+          {/* TAB 1: ATTENDANCE & CONSOLIDATED SHEET                    */}
+          {/* ========================================================= */}
+          {activeTab === "attendance" ? (
+            <div className="space-y-6">
+              {/* Period Info Banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30 border border-sky-200 dark:border-sky-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#00b0ef] text-white flex items-center justify-center shadow-xs">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                      Consolidated Attendance &amp; Hours Rollup
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Period: <strong className="text-sky-600 dark:text-sky-400">{data?.attendance?.periodLabel || "Current Period"}</strong> ({data?.attendance?.startDateStr} &rarr; {data?.attendance?.endDateStr})
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="font-bold text-xs px-2.5 py-1 text-slate-700 dark:text-slate-300">
+                    Mode: {attendancePeriod === "day" ? "Day Wise" : attendancePeriod === "week" ? "Week Wise" : "Month Wise"}
+                  </Badge>
+                </div>
               </div>
-              <span className="text-xs text-slate-400">
-                Click &quot;Raise Doubt&quot; on any task to notify the employee
-              </span>
-            </div>
 
-            <div className="space-y-4">
-              {data?.team?.map((memberObj: any) => {
-                const emp = memberObj.employee;
-                const update = memberObj.update;
-                const status = memberObj.status;
+              {/* Consolidated Metrics KPI Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Total Staff
+                  </span>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white">
+                    {data?.attendance?.teamSummary?.totalMembers || 0}
+                  </div>
+                  <span className="text-[10px] text-slate-400">Active team members</span>
+                </div>
 
-                return (
-                  <div
-                    key={emp._id}
-                    className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3.5"
-                  >
-                    {/* Header: Employee Info & Status Badge */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#00b0ef] to-[#007ea8] text-white font-black text-sm flex items-center justify-center shadow-xs">
-                          {emp.name.charAt(0)}
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                            {emp.name}
-                          </h4>
-                          <span className="text-xs text-slate-500">
-                            {emp.email} • {emp.department || "Engineering"}
-                          </span>
-                        </div>
-                      </div>
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#00b0ef] block mb-1">
+                    Logged Hours
+                  </span>
+                  <div className="text-2xl font-black text-[#00b0ef]">
+                    {data?.attendance?.teamSummary?.totalLoggedHours || 0}h
+                  </div>
+                  <span className="text-[10px] text-slate-400">Avg {data?.attendance?.teamSummary?.avgHoursPerWorkDay || 0}h / work day</span>
+                </div>
 
-                      <div>
-                        {status === "submitted" ? (
-                          <Badge variant="cyan" className="font-extrabold text-xs px-3 py-1 flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>SUBMITTED ({update?.totalHours}h Logged)</span>
-                          </Badge>
-                        ) : status === "on_leave" ? (
-                          <Badge className="font-extrabold text-xs px-3 py-1 bg-purple-500 text-white flex items-center gap-1.5">
-                            <Palmtree className="w-3.5 h-3.5" />
-                            <span>ON LEAVE: {update?.leaveType}</span>
-                          </Badge>
-                        ) : (
-                          <Badge className="font-extrabold text-xs px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>PENDING UPDATE</span>
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block mb-1">
+                    In Office
+                  </span>
+                  <div className="text-2xl font-black text-sky-600 dark:text-sky-400">
+                    {data?.attendance?.teamSummary?.inOfficeCount || 0}
+                  </div>
+                  <span className="text-[10px] text-slate-400">Physical presence days</span>
+                </div>
 
-                    {/* Content: Tasks breakdown or leave reason */}
-                    {status === "on_leave" ? (
-                      <div className="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 text-xs text-purple-900 dark:text-purple-200">
-                        <strong>Reason:</strong> {update?.leaveReason || "Personal Leave"}
-                      </div>
-                    ) : status === "submitted" && update?.tasks?.length > 0 ? (
-                      <div className="space-y-2.5 pl-2 sm:pl-4">
-                        {update.tasks.map((task: any, tIdx: number) => (
-                          <div
-                            key={task._id || tIdx}
-                            className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2"
-                          >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="font-bold text-[10px] text-[#00b0ef]">
-                                  {task.projectName}
-                                </Badge>
-                                {task.stageName && (
-                                  <Badge variant="secondary" className="font-bold text-[10px]">
-                                    {task.stageName}
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-1">
+                    Work From Home
+                  </span>
+                  <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                    {data?.attendance?.teamSummary?.wfhCount || 0}
+                  </div>
+                  <span className="text-[10px] text-slate-400">Remote logged days</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 block mb-1">
+                    Festival Days
+                  </span>
+                  <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
+                    {data?.attendance?.teamSummary?.festivalDayCount || 0}
+                  </div>
+                  <span className="text-[10px] text-slate-400">Gazetted / Public holidays</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500 block mb-1">
+                    Total Leaves
+                  </span>
+                  <div className="text-2xl font-black text-rose-500">
+                    {data?.attendance?.teamSummary?.leaveCount || 0}
+                  </div>
+                  <span className="text-[10px] text-slate-400">Approved absence days</span>
+                </div>
+              </div>
+
+              {/* Employee Consolidated Table */}
+              <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#00b0ef]" />
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      Employee Consolidated Attendance Breakdown
+                    </h4>
+                  </div>
+
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search employee or dept..."
+                      value={attendanceSearch}
+                      onChange={(e) => setAttendanceSearch(e.target.value)}
+                      className="w-full h-8 pl-8 pr-3 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold uppercase text-[10px] tracking-wider">
+                        <th className="py-3 px-4">Employee</th>
+                        <th className="py-3 px-3">Department</th>
+                        <th className="py-3 px-3 text-center">In Office</th>
+                        <th className="py-3 px-3 text-center">WFH</th>
+                        <th className="py-3 px-3 text-center">Work Days</th>
+                        <th className="py-3 px-3 text-center">Festival</th>
+                        <th className="py-3 px-3 text-center">Non-Work</th>
+                        <th className="py-3 px-3 text-center">Leaves</th>
+                        <th className="py-3 px-3 text-right">Total Hours</th>
+                        <th className="py-3 px-3 text-right">Avg / Day</th>
+                        <th className="py-3 px-4 text-center">Compliance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {data?.attendance?.staffConsolidated
+                        ?.filter((staff: any) => {
+                          if (!attendanceSearch.trim()) return true;
+                          const q = attendanceSearch.toLowerCase();
+                          return (
+                            staff.employee?.name?.toLowerCase().includes(q) ||
+                            staff.employee?.department?.toLowerCase().includes(q) ||
+                            staff.employee?.email?.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((staff: any) => {
+                          const emp = staff.employee;
+                          const hasLogged = staff.totalHours > 0 || staff.leaveDays > 0;
+                          return (
+                            <tr
+                              key={emp._id}
+                              className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                            >
+                              <td className="py-3 px-4">
+                                <div className="font-bold text-slate-900 dark:text-white">{emp.name}</div>
+                                <div className="text-[11px] text-slate-400">{emp.email}</div>
+                              </td>
+                              <td className="py-3 px-3 font-semibold text-slate-600 dark:text-slate-300">
+                                {emp.department || "Engineering"}
+                              </td>
+                              <td className="py-3 px-3 text-center font-bold text-sky-600 dark:text-sky-400">
+                                {staff.inOfficeDays}
+                              </td>
+                              <td className="py-3 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                                {staff.wfhDays}
+                              </td>
+                              <td className="py-3 px-3 text-center font-bold text-emerald-600 dark:text-emerald-400">
+                                {staff.workDays}
+                              </td>
+                              <td className="py-3 px-3 text-center font-bold text-purple-600 dark:text-purple-400">
+                                {staff.festivalDays}
+                              </td>
+                              <td className="py-3 px-3 text-center font-bold text-slate-500">
+                                {staff.nonWorkDays}
+                              </td>
+                              <td className="py-3 px-3 text-center font-bold text-rose-500">
+                                {staff.leaveDays}
+                              </td>
+                              <td className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">
+                                {staff.totalHours} hrs
+                              </td>
+                              <td className="py-3 px-3 text-right font-semibold text-[#00b0ef]">
+                                {staff.avgHoursPerDay} hrs
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                {hasLogged ? (
+                                  <Badge variant="cyan" className="text-[10px] font-bold px-2 py-0.5">
+                                    Active Log
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
+                                    No Record
                                   </Badge>
                                 )}
-                                <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
-                                  {task.title}
-                                </span>
-                              </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                  {task.startTime} – {task.endTime} ({task.hours}h)
-                                </span>
+              {/* Day-by-Day Attendance Register Grid Matrix */}
+              {data?.attendance?.daysList && data?.attendance?.daysList.length > 1 && (
+                <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4 text-[#00b0ef]" />
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        Attendance Register (Day-by-Day Grid Matrix)
+                      </h4>
+                    </div>
+                    <span className="text-xs text-slate-400">
+                      Shows daily work location, leave status, and logged engineering hours
+                    </span>
+                  </div>
 
-                                <Badge variant="default" className="text-[10px]">
-                                  {task.taskStatus}
-                                </Badge>
-
-                                {/* Manager: Raise Doubt Button */}
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() =>
-                                    handleOpenDoubtModal(update._id, task._id, task.title, emp.name)
-                                  }
-                                  className="h-7 px-2.5 text-xs text-amber-600 dark:text-amber-400 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl flex items-center gap-1 font-semibold"
-                                >
-                                  <HelpCircle className="w-3.5 h-3.5" />
-                                  <span>Raise Doubt</span>
-                                </Button>
-                              </div>
-                            </div>
-
-                            {task.description && (
-                              <p className="text-xs text-slate-500">{task.description}</p>
-                            )}
-
-                            {/* Existing Doubts & Replies on this Task */}
-                            {task.doubts && task.doubts.length > 0 && (
-                              <div className="space-y-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                                {task.doubts.map((doubt: any) => (
-                                  <div
-                                    key={doubt._id}
-                                    className={`p-2.5 rounded-xl text-xs space-y-1 ${
-                                      doubt.status === "resolved"
-                                        ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300"
-                                        : "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300"
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-bold flex items-center gap-1">
-                                        <MessageSquareQuote className="w-3.5 h-3.5 text-amber-600" />
-                                        <span>Doubt raised by {doubt.raisedByName}:</span>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold uppercase text-[10px]">
+                          <th className="py-2.5 px-3 text-left sticky left-0 bg-slate-50 dark:bg-slate-800 z-10 min-w-[140px]">
+                            Employee
+                          </th>
+                          {data?.attendance?.daysList.map((dayStr: string) => {
+                            let label = dayStr;
+                            try {
+                              label = format(parseISO(dayStr), "dd MMM (EEE)");
+                            } catch {}
+                            return (
+                              <th key={dayStr} className="py-2.5 px-2 text-center min-w-[95px]">
+                                {label}
+                              </th>
+                            );
+                          })}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {data?.attendance?.staffConsolidated?.map((staff: any) => {
+                          const emp = staff.employee;
+                          const recordsMap = new Map();
+                          if (staff.dailyRecords) {
+                            staff.dailyRecords.forEach((dr: any) => recordsMap.set(dr.dateString, dr));
+                          }
+                          return (
+                            <tr key={emp._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                              <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-slate-100 dark:border-slate-800">
+                                <div>{emp.name}</div>
+                                <div className="text-[10px] text-slate-400 font-normal">{emp.department || "Engineering"}</div>
+                              </td>
+                              {data?.attendance?.daysList.map((dayStr: string) => {
+                                const rec = recordsMap.get(dayStr);
+                                if (!rec) {
+                                  return (
+                                    <td key={dayStr} className="py-2 px-1 text-center">
+                                      <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
+                                    </td>
+                                  );
+                                }
+                                if (rec.status === "on_leave") {
+                                  return (
+                                    <td key={dayStr} className="py-2 px-1 text-center">
+                                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+                                        Leave ({rec.leaveType?.slice(0, 4) || "CL"})
                                       </span>
-                                      <Badge
-                                        variant={doubt.status === "resolved" ? "green" : "amber"}
-                                        className="text-[9px]"
-                                      >
-                                        {doubt.status === "resolved" ? "Resolved" : "Open"}
+                                    </td>
+                                  );
+                                }
+                                if (rec.dayType === "Festival Day") {
+                                  return (
+                                    <td key={dayStr} className="py-2 px-1 text-center">
+                                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
+                                        Festival
+                                      </span>
+                                    </td>
+                                  );
+                                }
+                                if (rec.dayType === "Non Work Day") {
+                                  return (
+                                    <td key={dayStr} className="py-2 px-1 text-center">
+                                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                        Off
+                                      </span>
+                                    </td>
+                                  );
+                                }
+                                const isWfh = rec.workLocation === "Work From Home";
+                                return (
+                                  <td key={dayStr} className="py-2 px-1 text-center">
+                                    <span
+                                      className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                        isWfh
+                                          ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                                          : "bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800"
+                                      }`}
+                                    >
+                                      {isWfh ? "WFH" : "Office"} ({rec.totalHours || 0}h)
+                                    </span>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ========================================================= */
+            /* TAB 2: DAILY TRACKER & TASK REVIEW (SINGLE DAY DRILLDOWN) */
+            /* ========================================================= */
+            <div className="space-y-6">
+              {/* Summary Metric KPI Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Total Team
+                  </span>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white">
+                    {data?.summary?.totalMembers || 0}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">
+                    Submitted
+                  </span>
+                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                    {data?.summary?.submittedCount || 0}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 block mb-1">
+                    On Leave
+                  </span>
+                  <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
+                    {data?.summary?.leaveCount || 0}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-500 block mb-1">
+                    Pending Log
+                  </span>
+                  <div className="text-2xl font-black text-amber-500">
+                    {data?.summary?.pendingCount || 0}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs col-span-2 sm:col-span-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#00b0ef] block mb-1">
+                    Total Hours
+                  </span>
+                  <div className="text-2xl font-black text-[#00b0ef]">
+                    {data?.summary?.totalHours || 0}h
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Member Daily Reports List */}
+              <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#00b0ef]" />
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                      Team Daily Progress for {format(parseISO(selectedDate), "dd MMMM yyyy")}
+                    </h3>
+                  </div>
+                  <span className="text-xs text-slate-400">
+                    Click &quot;Raise Doubt&quot; on any task to notify the employee
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {data?.team?.map((memberObj: any) => {
+                    const emp = memberObj.employee;
+                    const update = memberObj.update;
+                    const status = memberObj.status;
+
+                    return (
+                      <div
+                        key={emp._id}
+                        className="p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 space-y-3.5"
+                      >
+                        {/* Header: Employee Info & Status Badge */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#00b0ef] to-[#007ea8] text-white font-black text-sm flex items-center justify-center shadow-xs">
+                              {emp.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                                {emp.name}
+                              </h4>
+                              <span className="text-xs text-slate-500">
+                                {emp.email} • {emp.department || "Engineering"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div>
+                            {status === "submitted" ? (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="cyan" className="font-extrabold text-xs px-3 py-1 flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>SUBMITTED ({update?.totalHours}h Logged)</span>
+                                </Badge>
+                                <Badge variant="outline" className="font-bold text-[11px] px-2 py-0.5 border-sky-300 text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                                  {update?.workLocation === "Work From Home" ? <Home className="w-3 h-3 text-sky-500" /> : <Building2 className="w-3 h-3 text-sky-500" />}
+                                  <span>{update?.workLocation || "In Office"}</span>
+                                </Badge>
+                                <Badge variant="outline" className="font-bold text-[11px] px-2 py-0.5 border-purple-300 text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                                  <CalendarDays className="w-3 h-3 text-purple-500" />
+                                  <span>{update?.dayType || "Work Day"}</span>
+                                </Badge>
+                              </div>
+                            ) : status === "on_leave" ? (
+                              <Badge className="font-extrabold text-xs px-3 py-1 bg-purple-500 text-white flex items-center gap-1.5">
+                                <Palmtree className="w-3.5 h-3.5" />
+                                <span>ON LEAVE: {update?.leaveType}</span>
+                              </Badge>
+                            ) : (
+                              <Badge className="font-extrabold text-xs px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>PENDING UPDATE</span>
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Content: Tasks breakdown or leave reason */}
+                        {status === "on_leave" ? (
+                          <div className="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 text-xs text-purple-900 dark:text-purple-200">
+                            <strong>Reason:</strong> {update?.leaveReason || "Personal Leave"}
+                          </div>
+                        ) : status === "submitted" && update?.tasks?.length > 0 ? (
+                          <div className="space-y-2.5 pl-2 sm:pl-4">
+                            {update.tasks.map((task: any, tIdx: number) => (
+                              <div
+                                key={task._id || tIdx}
+                                className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2"
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge variant="outline" className="font-bold text-[10px] text-[#00b0ef]">
+                                      {task.projectName}
+                                    </Badge>
+                                    {task.stageName && (
+                                      <Badge variant="secondary" className="font-bold text-[10px]">
+                                        {task.stageName}
                                       </Badge>
-                                    </div>
-                                    <p className="italic pl-4">&ldquo;{doubt.question}&rdquo;</p>
-                                    {doubt.reply && (
-                                      <p className="pl-4 text-slate-700 dark:text-slate-300 font-semibold">
-                                        &rarr; Employee Reply: &quot;{doubt.reply}&quot;
-                                      </p>
                                     )}
+                                    <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">
+                                      {task.title}
+                                    </span>
                                   </div>
-                                ))}
+
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                      {task.startTime} – {task.endTime} ({task.hours}h)
+                                    </span>
+
+                                    <Badge variant="default" className="text-[10px]">
+                                      {task.taskStatus}
+                                    </Badge>
+
+                                    {/* Manager: Raise Doubt Button */}
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleOpenDoubtModal(update._id, task._id, task.title, emp.name)
+                                      }
+                                      className="h-7 px-2.5 text-xs text-amber-600 dark:text-amber-400 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl flex items-center gap-1 font-semibold cursor-pointer"
+                                    >
+                                      <HelpCircle className="w-3.5 h-3.5" />
+                                      <span>Raise Doubt</span>
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {task.description && (
+                                  <p className="text-xs text-slate-500">{task.description}</p>
+                                )}
+
+                                {/* Existing Doubts & Replies on this Task */}
+                                {task.doubts && task.doubts.length > 0 && (
+                                  <div className="space-y-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                                    {task.doubts.map((doubt: any) => (
+                                      <div
+                                        key={doubt._id}
+                                        className={`p-2.5 rounded-xl text-xs space-y-1 ${
+                                          doubt.status === "resolved"
+                                            ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300"
+                                            : "bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300"
+                                        }`}
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-bold flex items-center gap-1">
+                                            <MessageSquareQuote className="w-3.5 h-3.5 text-amber-600" />
+                                            <span>Doubt raised by {doubt.raisedByName}:</span>
+                                          </span>
+                                          <Badge
+                                            variant={doubt.status === "resolved" ? "green" : "outline"}
+                                            className="text-[10px]"
+                                          >
+                                            {doubt.status === "resolved" ? "Clarified" : "Open Doubt"}
+                                          </Badge>
+                                        </div>
+                                        <p className="italic text-slate-700 dark:text-slate-300">{doubt.question}</p>
+                                        {doubt.reply && (
+                                          <div className="pt-1 text-slate-600 dark:text-slate-400 border-t border-dashed border-slate-200 dark:border-slate-700">
+                                            <strong className="text-emerald-600 dark:text-emerald-400">
+                                              {emp.name}&apos;s Clarification:
+                                            </strong>{" "}
+                                            {doubt.reply}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+
+                            {update?.generalNotes && (
+                              <div className="text-xs text-slate-500 italic pt-1">
+                                <strong>General Notes:</strong> {update.generalNotes}
                               </div>
                             )}
                           </div>
-                        ))}
-
-                        {update?.generalNotes && (
-                          <div className="text-xs text-slate-500 italic pt-1">
-                            <strong>General Notes:</strong> {update.generalNotes}
-                          </div>
+                        ) : (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 italic">
+                            No work log submitted for this date yet.
+                          </p>
                         )}
                       </div>
-                    ) : (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 italic">
-                        No work log submitted for this date yet.
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

@@ -17,9 +17,10 @@ export async function GET(req: NextRequest) {
     const requestedUserId = searchParams.get("userId");
 
     // ROLE ENFORCEMENT:
-    // If not admin, the user is strictly restricted to their own individual data!
     const isAdmin = user.role === "admin";
-    const targetUserId = isAdmin ? requestedUserId : user.id;
+    const isManager = user.role === "manager";
+    const canManage = isAdmin || isManager;
+    const targetUserId = canManage ? requestedUserId : user.id;
 
     // Date range filter
     const now = new Date();
@@ -34,8 +35,10 @@ export async function GET(req: NextRequest) {
 
     // 1. Projects Query
     const projectQuery: any = { isArchived: false };
-    if (!isAdmin) {
+    if (!isAdmin && !isManager) {
       projectQuery.members = user.id;
+    } else if (isManager && !selectedProjectId) {
+      projectQuery.$or = [{ members: user.id }, { createdBy: user.id }];
     }
     if (selectedProjectId && selectedProjectId !== "ALL") {
       projectQuery._id = selectedProjectId;
@@ -87,7 +90,7 @@ export async function GET(req: NextRequest) {
         .populate("projectId", "name code")
         .sort({ weekStartDate: -1 })
         .lean(),
-      isAdmin ? User.find({ isActive: true }).select("name email department role avatar").lean() : [],
+      canManage ? User.find({ isActive: true }).select("name email department role avatar").lean() : [],
     ]);
 
     // Metrics calculations

@@ -7,7 +7,8 @@ import Project from "@/models/Project";
 import Stage from "@/models/Stage";
 import Task from "@/models/Task";
 import DailyWorkUpdate from "@/models/DailyWorkUpdate";
-import { format, subDays, parseISO } from "date-fns";
+import { format, subDays, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { buildAttendanceExcel } from "@/lib/reports/excel-generator";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const requestedDate = url.searchParams.get("date") || getFormattedDate(new Date());
     const filterUserId = url.searchParams.get("userId");
+    const period = (url.searchParams.get("period") || "week") as "day" | "week" | "month";
+    const exportFormat = url.searchParams.get("export");
 
     // Yesterday's date string for check
     const todayObj = new Date();
@@ -109,16 +112,154 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Helper function for computing consolidated attendance across staff
+    async function computeAttendanceData(staffList: any[]) {
+      let refDate: Date;
+      try {
+        refDate = parseISO(requestedDate);
+        if (isNaN(refDate.getTime())) refDate = new Date();
+      } catch {
+        refDate = new Date();
+      }
+
+      let start: Date;
+      let end: Date;
+      let periodLabel = "";
+
+      if (period === "week") {
+        start = startOfWeek(refDate, { weekStartsOn: 1 });
+        end = endOfWeek(refDate, { weekStartsOn: 1 });
+        periodLabel = `Week of ${format(start, "dd MMM yyyy")} - ${format(end, "dd MMM yyyy")}`;
+      } else if (period === "month") {
+        start = startOfMonth(refDate);
+        end = endOfMonth(refDate);
+        periodLabel = format(refDate, "MMMM yyyy");
+      } else {
+        // "day"
+        start = refDate;
+        end = refDate;
+        periodLabel = format(refDate, "dd MMMM yyyy");
+      }
+
+      const startDateStr = format(start, "yyyy-MM-dd");
+      const endDateStr = format(end, "yyyy-MM-dd");
+      const daysList = eachDayOfInterval({ start, end }).map((d) => format(d, "yyyy-MM-dd"));
+
+      const staffIds = staffList.map((s) => s._id);
+
+      const periodUpdates = await DailyWorkUpdate.find({
+        userId: { $in: staffIds },
+        dateString: { $gte: startDateStr, $lte: endDateStr },
+      }).lean();
+
+      const updatesByUser = new Map<string, any[]>();
+      for (const u of periodUpdates) {
+        const uid = u.userId.toString();
+        if (!updatesByUser.has(uid)) updatesByUser.set(uid, []);
+        updatesByUser.get(uid)!.push(u);
+      }
+
+      let totalLoggedHours = 0;
+      let inOfficeCount = 0;
+      let wfhCount = 0;
+      let clientSiteCount = 0;
+      let workDayCount = 0;
+      let festivalDayCount = 0;
+      let nonWorkDayCount = 0;
+      let leaveCount = 0;
+
+      const staffConsolidated = staffList.map((staff) => {
+        const userUpdates = updatesByUser.get(staff._id.toString()) || [];
+
+        let staffInOffice = 0;
+        let staffWfh = 0;
+        let staffClientSite = 0;
+        let staffWorkDays = 0;
+        let staffFestivalDays = 0;
+        let staffNonWorkDays = 0;
+        let staffLeaves = 0;
+        let staffHours = 0;
+
+        userUpdates.forEach((u) => {
+          if (u.status === "on_leave") {
+            staffLeaves++;
+          } else {
+            if (u.workLocation === "Work From Home") staffWfh++;
+            else if (u.workLocation === "Client Site") staffClientSite++;
+            else staffInOffice++;
+
+            if (u.dayType === "Festival Day") staffFestivalDays++;
+            else if (u.dayType === "Non Work Day") staffNonWorkDays++;
+            else staffWorkDays++;
+
+            staffHours += u.totalHours || 0;
+          }
+        });
+
+        staffHours = Number(staffHours.toFixed(1));
+        const avg = staffWorkDays > 0 ? Number((staffHours / staffWorkDays).toFixed(1)) : 0;
+
+        totalLoggedHours += staffHours;
+        inOfficeCount += staffInOffice;
+        wfhCount += staffWfh;
+        clientSiteCount += staffClientSite;
+        workDayCount += staffWorkDays;
+        festivalDayCount += staffFestivalDays;
+        nonWorkDayCount += staffNonWorkDays;
+        leaveCount += staffLeaves;
+
+        return {
+          employee: staff,
+          inOfficeDays: staffInOffice,
+          wfhDays: staffWfh,
+          clientSiteDays: staffClientSite,
+          workDays: staffWorkDays,
+          festivalDays: staffFestivalDays,
+          nonWorkDays: staffNonWorkDays,
+          leaveDays: staffLeaves,
+          totalHours: staffHours,
+          avgHoursPerDay: avg,
+          dailyRecords: userUpdates,
+        };
+      });
+
+      totalLoggedHours = Number(totalLoggedHours.toFixed(1));
+      const avgHoursPerWorkDay = workDayCount > 0 ? Number((totalLoggedHours / workDayCount).toFixed(1)) : 0;
+
+      const teamSummary = {
+        totalMembers: staffList.length,
+        totalLoggedHours,
+        inOfficeCount,
+        wfhCount,
+        clientSiteCount,
+        workDayCount,
+        festivalDayCount,
+        nonWorkDayCount,
+        leaveCount,
+        avgHoursPerWorkDay,
+      };
+
+      return {
+        period,
+        periodLabel,
+        startDateStr,
+        endDateStr,
+        daysList,
+        teamSummary,
+        staffConsolidated,
+        updates: periodUpdates,
+      };
+    }
+
     // ==========================================
     // CASE 2: MANAGER VIEW (Their reporting team & project members)
     // ==========================================
     if (currentUser.role === "manager") {
-      // Find all employees reporting directly to this manager
       let teamEmployees = await User.find({
         isActive: true,
         $or: [
           { managerId: currentUser.id },
-          { role: "employee" }, // Include all employees if direct manager mapping isn't fully set
+          { role: "employee" },
         ],
       })
         .select("_id name email role department managerId")
@@ -127,7 +268,32 @@ export async function GET(req: NextRequest) {
 
       const employeeIds = teamEmployees.map((e) => e._id);
 
-      // Fetch all daily updates for this date
+      // Attendance consolidated calculation
+      const attendanceData = await computeAttendanceData(teamEmployees);
+
+      if (exportFormat === "excel") {
+        const excelBuffer = await buildAttendanceExcel({
+          period: attendanceData.period,
+          periodLabel: attendanceData.periodLabel,
+          startDateStr: attendanceData.startDateStr,
+          endDateStr: attendanceData.endDateStr,
+          daysList: attendanceData.daysList,
+          teamSummary: attendanceData.teamSummary,
+          staffConsolidated: attendanceData.staffConsolidated,
+          updates: attendanceData.updates,
+          generatedBy: currentUser.name || "Manager",
+        });
+
+        return new NextResponse(excelBuffer as any, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Disposition": `attachment; filename="SphereX_Team_Attendance_${attendanceData.period}_${attendanceData.startDateStr}_to_${attendanceData.endDateStr}.xlsx"`,
+          },
+        });
+      }
+
+      // Fetch all daily updates for the specific requestedDate (Single Day Tracker)
       const updates = await DailyWorkUpdate.find({
         userId: { $in: employeeIds },
         dateString: requestedDate,
@@ -136,7 +302,6 @@ export async function GET(req: NextRequest) {
       const updateMap = new Map();
       updates.forEach((u) => updateMap.set(u.userId.toString(), u));
 
-      // Combine employees with their status
       let submittedCount = 0;
       let leaveCount = 0;
       let pendingCount = 0;
@@ -183,6 +348,7 @@ export async function GET(req: NextRequest) {
             totalHours,
           },
           team: employeeCards,
+          attendance: attendanceData,
         },
       });
     }
@@ -202,6 +368,31 @@ export async function GET(req: NextRequest) {
         .lean();
 
       const staffIds = allStaff.map((s) => s._id);
+
+      // Attendance consolidated calculation
+      const attendanceData = await computeAttendanceData(allStaff);
+
+      if (exportFormat === "excel") {
+        const excelBuffer = await buildAttendanceExcel({
+          period: attendanceData.period,
+          periodLabel: attendanceData.periodLabel,
+          startDateStr: attendanceData.startDateStr,
+          endDateStr: attendanceData.endDateStr,
+          daysList: attendanceData.daysList,
+          teamSummary: attendanceData.teamSummary,
+          staffConsolidated: attendanceData.staffConsolidated,
+          updates: attendanceData.updates,
+          generatedBy: currentUser.name || "Administrator",
+        });
+
+        return new NextResponse(excelBuffer as any, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Disposition": `attachment; filename="SphereX_Company_Attendance_${attendanceData.period}_${attendanceData.startDateStr}_to_${attendanceData.endDateStr}.xlsx"`,
+          },
+        });
+      }
 
       const updates = await DailyWorkUpdate.find({
         userId: { $in: staffIds },
@@ -257,6 +448,7 @@ export async function GET(req: NextRequest) {
             totalHours,
           },
           team: staffCards,
+          attendance: attendanceData,
         },
       });
     }
@@ -285,6 +477,8 @@ export async function POST(req: NextRequest) {
       status = "submitted",
       leaveType = null,
       leaveReason = "",
+      workLocation = "In Office",
+      dayType = "Work Day",
       tasks = [],
       generalNotes = "",
     } = body;
@@ -425,6 +619,8 @@ export async function POST(req: NextRequest) {
         status,
         leaveType: status === "on_leave" ? leaveType : null,
         leaveReason: status === "on_leave" ? leaveReason : "",
+        workLocation: workLocation || "In Office",
+        dayType: dayType || "Work Day",
         totalHours,
         tasks: processedTasks,
         generalNotes,
@@ -433,6 +629,8 @@ export async function POST(req: NextRequest) {
       dailyUpdate.status = status;
       dailyUpdate.leaveType = status === "on_leave" ? leaveType : null;
       dailyUpdate.leaveReason = status === "on_leave" ? leaveReason : "";
+      dailyUpdate.workLocation = workLocation || dailyUpdate.workLocation || "In Office";
+      dailyUpdate.dayType = dayType || dailyUpdate.dayType || "Work Day";
       dailyUpdate.totalHours = totalHours;
       dailyUpdate.tasks = processedTasks;
       dailyUpdate.generalNotes = generalNotes;

@@ -153,6 +153,7 @@ interface ConsolidatedPDFProps {
   tasks: any[];
   weeklyUpdates: any[];
   discrepancies: any[];
+  dailyWorkUpdates?: any[];
   periodLabel?: string;
   generatedBy?: string;
 }
@@ -164,6 +165,7 @@ const ConsolidatedPDFDocument = ({
   tasks,
   weeklyUpdates,
   discrepancies,
+  dailyWorkUpdates,
   periodLabel,
   generatedBy,
 }: ConsolidatedPDFProps) => (
@@ -329,6 +331,48 @@ const ConsolidatedPDFDocument = ({
         ))}
       </View>
 
+      {/* Daily Work Updates & Attendance Section */}
+      {dailyWorkUpdates && dailyWorkUpdates.length > 0 && (
+        <View>
+          <Text style={styles.sectionTitle}>Daily Work Updates &amp; Attendance ({dailyWorkUpdates.length} records)</Text>
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderCell, { width: "16%" }]}>Date</Text>
+              <Text style={[styles.tableHeaderCell, { width: "20%" }]}>Employee</Text>
+              <Text style={[styles.tableHeaderCell, { width: "16%" }]}>Work Location</Text>
+              <Text style={[styles.tableHeaderCell, { width: "15%" }]}>Day Type</Text>
+              <Text style={[styles.tableHeaderCell, { width: "11%" }]}>Hours</Text>
+              <Text style={[styles.tableHeaderCell, { width: "22%" }]}>Deliverable / Status</Text>
+            </View>
+
+            {dailyWorkUpdates.slice(0, 15).map((u: any, idx: number) => {
+              const taskTitle =
+                u.tasks && u.tasks.length > 0
+                  ? u.tasks[0].title
+                  : u.status === "on_leave"
+                  ? `Leave: ${u.leaveType || ""}`
+                  : "No details";
+              return (
+                <View key={u._id || idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}>
+                  <Text style={[styles.tableCell, { width: "16%" }]}>{u.dateString || "-"}</Text>
+                  <Text style={[styles.tableCell, { width: "20%", fontFamily: "Helvetica-Bold" }]}>
+                    {u.userName || "-"}
+                  </Text>
+                  <Text style={[styles.tableCell, { width: "16%" }]}>{u.workLocation || "In Office"}</Text>
+                  <Text style={[styles.tableCell, { width: "15%" }]}>{u.dayType || "Work Day"}</Text>
+                  <Text style={[styles.tableCell, { width: "11%", fontFamily: "Helvetica-Bold" }]}>
+                    {u.totalHours || 0}h
+                  </Text>
+                  <Text style={[styles.tableCell, { width: "22%" }]}>
+                    {taskTitle.length > 28 ? taskTitle.slice(0, 26) + "..." : taskTitle}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
       <View style={styles.footer} fixed>
         <Text>VKnow SphereX Lifecycle Engine &bull; Confidential</Text>
         <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
@@ -342,6 +386,7 @@ interface IndividualPDFProps {
   summary: any;
   tasks: any[];
   weeklyUpdates: any[];
+  dailyWorkUpdates?: any[];
   periodLabel?: string;
 }
 
@@ -350,6 +395,7 @@ const IndividualPDFDocument = ({
   summary,
   tasks,
   weeklyUpdates,
+  dailyWorkUpdates,
   periodLabel,
 }: IndividualPDFProps) => (
   <Document>
@@ -457,6 +503,44 @@ const IndividualPDFDocument = ({
           </View>
         ))}
       </View>
+
+      {/* Daily Work Updates & Attendance Section */}
+      {dailyWorkUpdates && dailyWorkUpdates.length > 0 && (
+        <View>
+          <Text style={styles.sectionTitle}>My Daily Work Updates &amp; Attendance</Text>
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderCell, { width: "18%" }]}>Date</Text>
+              <Text style={[styles.tableHeaderCell, { width: "20%" }]}>Work Location</Text>
+              <Text style={[styles.tableHeaderCell, { width: "20%" }]}>Day Type</Text>
+              <Text style={[styles.tableHeaderCell, { width: "14%" }]}>Hours</Text>
+              <Text style={[styles.tableHeaderCell, { width: "28%" }]}>Deliverable / Leave</Text>
+            </View>
+
+            {dailyWorkUpdates.slice(0, 12).map((u: any, idx: number) => {
+              const taskTitle =
+                u.tasks && u.tasks.length > 0
+                  ? u.tasks[0].title
+                  : u.status === "on_leave"
+                  ? `Leave: ${u.leaveType || ""}`
+                  : "-";
+              return (
+                <View key={u._id || idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}>
+                  <Text style={[styles.tableCell, { width: "18%" }]}>{u.dateString || "-"}</Text>
+                  <Text style={[styles.tableCell, { width: "20%" }]}>{u.workLocation || "In Office"}</Text>
+                  <Text style={[styles.tableCell, { width: "20%" }]}>{u.dayType || "Work Day"}</Text>
+                  <Text style={[styles.tableCell, { width: "14%", fontFamily: "Helvetica-Bold" }]}>
+                    {u.totalHours || 0} hrs
+                  </Text>
+                  <Text style={[styles.tableCell, { width: "28%" }]}>
+                    {taskTitle.length > 35 ? taskTitle.slice(0, 32) + "..." : taskTitle}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       <View style={styles.footer} fixed>
         <Text>VKnow SphereX Individual Tracking &bull; Confidential</Text>
