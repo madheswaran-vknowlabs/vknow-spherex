@@ -82,10 +82,12 @@ export default function ProjectDetailPage({
   const [taskBlockedBy, setTaskBlockedBy] = useState<string[]>([]);
   const [creatingTask, setCreatingTask] = useState(false);
 
-  // Clockify Quick Time Tracker Bar state
+  // Track Your Work Bar state
   const [quickTitle, setQuickTitle] = useState("");
   const [quickStartTime, setQuickStartTime] = useState("10:00");
   const [quickEndTime, setQuickEndTime] = useState("12:00");
+  const [quickStartInput, setQuickStartInput] = useState("10:00 AM");
+  const [quickEndInput, setQuickEndInput] = useState("12:00 PM");
   const [quickHours, setQuickHours] = useState(2);
   const [quickAssignee, setQuickAssignee] = useState("");
   const [quickDate, setQuickDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -102,7 +104,10 @@ export default function ProjectDetailPage({
     if (!startStr || !endStr) return 0;
     const [startH, startM] = startStr.split(":").map(Number);
     const [endH, endM] = endStr.split(":").map(Number);
-    const diffMins = endH * 60 + endM - (startH * 60 + startM);
+    let diffMins = endH * 60 + endM - (startH * 60 + startM);
+    if (diffMins < 0) {
+      diffMins += 24 * 60; // handle overnight interval
+    }
     if (diffMins > 0) {
       return Math.round((diffMins / 60) * 10) / 10;
     }
@@ -117,16 +122,86 @@ export default function ProjectDetailPage({
     return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
   };
 
-  const handleQuickStartTimeChange = (newStart: string) => {
-    setQuickStartTime(newStart);
-    const calculated = calculateDurationHours(newStart, quickEndTime);
-    if (calculated > 0) setQuickHours(calculated);
+  const parseSmartTime = (raw: string): { time24: string; formatted12: string } | null => {
+    if (!raw) return null;
+    const clean = raw.trim().toLowerCase();
+
+    // AM/PM format (e.g. "10:00 am", "11:30 pm", "1pm", "10am")
+    const ampmMatch = clean.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+    if (ampmMatch) {
+      let hours = parseInt(ampmMatch[1], 10);
+      const mins = ampmMatch[2] ? parseInt(ampmMatch[2], 10) : 0;
+      const isPm = ampmMatch[3] === "pm";
+      if (hours < 1 || hours > 12 || mins < 0 || mins > 59) return null;
+      if (isPm && hours !== 12) hours += 12;
+      if (!isPm && hours === 12) hours = 0;
+      const time24 = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+      return { time24, formatted12: formatTime12h(time24) };
+    }
+
+    // HH:mm format (e.g. "10:00", "23:30", "9:30")
+    if (clean.includes(":")) {
+      const parts = clean.split(":");
+      if (parts.length === 2) {
+        const hours = parseInt(parts[0], 10);
+        const mins = parseInt(parts[1], 10);
+        if (!isNaN(hours) && !isNaN(mins) && hours >= 0 && hours <= 23 && mins >= 0 && mins <= 59) {
+          const time24 = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+          return { time24, formatted12: formatTime12h(time24) };
+        }
+      }
+      return null;
+    }
+
+    // Pure digits shorthand (e.g. 1000 -> 10:00, 2330 -> 23:30, 930 -> 09:30, 10 -> 10:00)
+    const digitsOnly = clean.replace(/\D/g, "");
+    if (!digitsOnly) return null;
+
+    let hours = 0;
+    let mins = 0;
+    if (digitsOnly.length === 4) {
+      hours = parseInt(digitsOnly.slice(0, 2), 10);
+      mins = parseInt(digitsOnly.slice(2, 4), 10);
+    } else if (digitsOnly.length === 3) {
+      hours = parseInt(digitsOnly.slice(0, 1), 10);
+      mins = parseInt(digitsOnly.slice(1, 3), 10);
+    } else if (digitsOnly.length === 1 || digitsOnly.length === 2) {
+      hours = parseInt(digitsOnly, 10);
+      mins = 0;
+    } else {
+      return null;
+    }
+
+    if (hours >= 0 && hours <= 23 && mins >= 0 && mins <= 59) {
+      const time24 = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+      return { time24, formatted12: formatTime12h(time24) };
+    }
+
+    return null;
   };
 
-  const handleQuickEndTimeChange = (newEnd: string) => {
-    setQuickEndTime(newEnd);
-    const calculated = calculateDurationHours(quickStartTime, newEnd);
-    if (calculated > 0) setQuickHours(calculated);
+  const handleCommitStartTime = (val: string) => {
+    const parsed = parseSmartTime(val);
+    if (parsed) {
+      setQuickStartTime(parsed.time24);
+      setQuickStartInput(parsed.formatted12);
+      const calculated = calculateDurationHours(parsed.time24, quickEndTime);
+      if (calculated > 0) setQuickHours(calculated);
+    } else {
+      setQuickStartInput(formatTime12h(quickStartTime));
+    }
+  };
+
+  const handleCommitEndTime = (val: string) => {
+    const parsed = parseSmartTime(val);
+    if (parsed) {
+      setQuickEndTime(parsed.time24);
+      setQuickEndInput(parsed.formatted12);
+      const calculated = calculateDurationHours(quickStartTime, parsed.time24);
+      if (calculated > 0) setQuickHours(calculated);
+    } else {
+      setQuickEndInput(formatTime12h(quickEndTime));
+    }
   };
 
   const handleModalStartTimeChange = (newStart: string) => {
@@ -303,7 +378,7 @@ export default function ProjectDetailPage({
     }
   };
 
-  // Handle Quick Add and Log Task (Clockify Style)
+  // Handle Quick Add and Log Task (Track Your Work)
   const handleQuickAddAndLogTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickTitle.trim()) {
@@ -315,6 +390,30 @@ export default function ProjectDetailPage({
       const sessionUserId = (session?.user as any)?.id;
       const targetAssigneeId = canAssignOthers ? (quickAssignee || sessionUserId || null) : sessionUserId;
 
+      // Smart parse times in case input was not blurred before submitting
+      let start24 = quickStartTime;
+      let end24 = quickEndTime;
+      let startFmt = formatTime12h(quickStartTime);
+      let endFmt = formatTime12h(quickEndTime);
+
+      const parsedStart = parseSmartTime(quickStartInput);
+      if (parsedStart) {
+        start24 = parsedStart.time24;
+        startFmt = parsedStart.formatted12;
+        setQuickStartTime(parsedStart.time24);
+        setQuickStartInput(parsedStart.formatted12);
+      }
+      const parsedEnd = parseSmartTime(quickEndInput);
+      if (parsedEnd) {
+        end24 = parsedEnd.time24;
+        endFmt = parsedEnd.formatted12;
+        setQuickEndTime(parsedEnd.time24);
+        setQuickEndInput(parsedEnd.formatted12);
+      }
+
+      let duration = calculateDurationHours(start24, end24);
+      if (duration <= 0) duration = quickHours > 0 ? quickHours : 2;
+
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -325,15 +424,15 @@ export default function ProjectDetailPage({
           description: quickTitle.trim(),
           assigneeId: targetAssigneeId,
           priority: "Medium",
-          estimatedHours: quickHours > 0 ? quickHours : 4,
-          loggedHours: quickHours,
-          status: quickHours > 0 ? "In Progress" : "To Do",
+          estimatedHours: duration > 0 ? duration : 4,
+          loggedHours: duration,
+          status: duration > 0 ? "In Progress" : "To Do",
           initialWorkLog:
-            quickHours > 0
+            duration > 0
               ? {
-                  startTime: formatTime12h(quickStartTime),
-                  endTime: formatTime12h(quickEndTime),
-                  hours: quickHours,
+                  startTime: startFmt,
+                  endTime: endFmt,
+                  hours: duration,
                   date: quickDate,
                   notes: quickTitle.trim(),
                 }
@@ -864,8 +963,8 @@ export default function ProjectDetailPage({
                 onClick={() => setIsTaskModalOpen(true)}
                 className="bg-[#00b0ef] hover:bg-[#009ad4] text-white h-9 px-3.5 text-xs font-bold rounded-xl shadow-xs shrink-0"
               >
-                <Plus className="w-4 h-4 mr-1" />
-                <span>+ Detailed Task</span>
+                <Plus className="w-4 h-4 mr-1.5" />
+                <span>Detailed Task</span>
               </Button>
             </div>
           </div>
@@ -955,17 +1054,14 @@ export default function ProjectDetailPage({
           </div>
         </div>
 
-        {/* Clean & Spacious Quick Time Tracker (Clockify Style) */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+        {/* Track Your Work Bar */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2.5">
           {/* Tracker Subheader */}
           <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-200/70 dark:border-slate-800/80">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-[#00b0ef]" />
               <span className="text-sm font-bold text-slate-900 dark:text-white">
-                Quick Time Tracker (Clockify Style)
-              </span>
-              <span className="text-xs text-slate-400 font-normal hidden md:inline">
-                &bull; Log your deliverable and hours instantly to #{currentSelectedStage.order} {currentSelectedStage.name}
+                Track Your Work
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-xs">
@@ -977,7 +1073,7 @@ export default function ProjectDetailPage({
           </div>
 
           <form onSubmit={handleQuickAddAndLogTask} className="space-y-3">
-            {/* Row 1: Clockify Primary Input Bar */}
+            {/* Primary Input Bar */}
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
               {/* Task Title Input */}
               <div className="relative flex-1">
@@ -995,22 +1091,40 @@ export default function ProjectDetailPage({
                 </div>
               </div>
 
-              {/* Time Interval Selector (From - To) */}
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3.5 h-11 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
+              {/* Time Interval Selector (From - To) - Smart Text Inputs */}
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 h-11 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
                 <span className="text-xs font-semibold text-slate-400">From</span>
                 <input
-                  type="time"
-                  value={quickStartTime}
-                  onChange={(e) => handleQuickStartTimeChange(e.target.value)}
-                  className="bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden w-[80px] cursor-pointer"
+                  type="text"
+                  value={quickStartInput}
+                  placeholder="10:00 AM"
+                  onChange={(e) => setQuickStartInput(e.target.value)}
+                  onBlur={(e) => handleCommitStartTime(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCommitStartTime((e.target as HTMLInputElement).value);
+                    }
+                  }}
+                  className="bg-transparent text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden w-[85px] text-center"
+                  title="Enter time e.g. 1000 -> 10:00 AM, 2330 -> 11:30 PM, or 9:30"
                 />
                 <span className="text-slate-300 dark:text-slate-600">&ndash;</span>
                 <span className="text-xs font-semibold text-slate-400">To</span>
                 <input
-                  type="time"
-                  value={quickEndTime}
-                  onChange={(e) => handleQuickEndTimeChange(e.target.value)}
-                  className="bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden w-[80px] cursor-pointer"
+                  type="text"
+                  value={quickEndInput}
+                  placeholder="12:00 PM"
+                  onChange={(e) => setQuickEndInput(e.target.value)}
+                  onBlur={(e) => handleCommitEndTime(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCommitEndTime((e.target as HTMLInputElement).value);
+                    }
+                  }}
+                  className="bg-transparent text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden w-[85px] text-center"
+                  title="Enter time e.g. 1200 -> 12:00 PM, 2330 -> 11:30 PM, or 5:00 PM"
                 />
               </div>
 
@@ -1041,58 +1155,19 @@ export default function ProjectDetailPage({
                 </div>
               )}
 
-              {/* Add & Log CTA Button */}
+              {/* Add & Log CTA Button (Icon only to reduce unwanted space) */}
               <Button
                 type="submit"
                 disabled={quickSubmitting}
-                className="h-11 px-5 text-sm font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white shadow-xs rounded-xl shrink-0 flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                title="Add Deliverable & Log Work"
+                className="h-11 w-11 p-0 text-sm font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white shadow-xs rounded-xl shrink-0 flex items-center justify-center cursor-pointer transition-colors"
               >
                 {quickSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <Plus className="w-5 h-5 stroke-[2.5]" />
                 )}
-                <span>+ Add &amp; Log Work</span>
               </Button>
-            </div>
-
-            {/* Row 2: Clockify Quick Interval Presets */}
-            <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5 text-xs">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-500 font-medium">Quick Presets:</span>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {[
-                    { label: "10:00 AM – 12:00 PM (2h)", start: "10:00", end: "12:00", hours: 2 },
-                    { label: "02:00 PM – 05:00 PM (3h)", start: "14:00", end: "17:00", hours: 3 },
-                    { label: "09:30 AM – 01:30 PM (4h)", start: "09:30", end: "13:30", hours: 4 },
-                    { label: "09:00 AM – 05:00 PM (8h Full Day)", start: "09:00", end: "17:00", hours: 8 },
-                  ].map((p) => {
-                    const isActive = quickStartTime === p.start && quickEndTime === p.end;
-                    return (
-                      <button
-                        key={p.label}
-                        type="button"
-                        onClick={() => {
-                          setQuickStartTime(p.start);
-                          setQuickEndTime(p.end);
-                          setQuickHours(p.hours);
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
-                          isActive
-                            ? "bg-[#00b0ef] text-white border-[#00b0ef] shadow-xs"
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[#00b0ef] hover:text-[#00b0ef]"
-                        }`}
-                      >
-                        {p.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <span className="text-xs text-slate-400 hidden lg:inline">
-                Creates deliverable task &amp; logs duration simultaneously with zero extra clicks
-              </span>
             </div>
           </form>
         </div>
@@ -1106,7 +1181,7 @@ export default function ProjectDetailPage({
                 No deliverables added to this stage yet
               </div>
               <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-                Use the Quick Time Tracker above to instantly add tasks and log hours, or click &quot;+ Detailed Task&quot; for complete custom configurations.
+                Use Track Your Work above to instantly add tasks and log hours, or click &quot;Detailed Task&quot; for complete custom configurations.
               </p>
             </div>
           ) : (
