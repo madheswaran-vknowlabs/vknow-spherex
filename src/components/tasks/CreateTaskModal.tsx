@@ -70,6 +70,44 @@ export function CreateTaskModal({
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 5), "yyyy-MM-dd"));
   const [blockedBy, setBlockedBy] = useState<string[]>([]);
 
+  // Clockify Initial Working Hours
+  const [logHoursNow, setLogHoursNow] = useState(true);
+  const [initialStartTime, setInitialStartTime] = useState("10:00");
+  const [initialEndTime, setInitialEndTime] = useState("12:00");
+  const [initialLoggedHours, setInitialLoggedHours] = useState(2);
+  const [initialNotes, setInitialNotes] = useState("");
+
+  const calculateHours = (startStr: string, endStr: string) => {
+    if (!startStr || !endStr) return 0;
+    const [startH, startM] = startStr.split(":").map(Number);
+    const [endH, endM] = endStr.split(":").map(Number);
+    const diffMins = endH * 60 + endM - (startH * 60 + startM);
+    if (diffMins > 0) {
+      return Math.round((diffMins / 60) * 10) / 10;
+    }
+    return 0;
+  };
+
+  const formatTime12h = (time24: string) => {
+    if (!time24) return "";
+    const [h, m] = time24.split(":").map(Number);
+    const period = h >= 12 ? "PM" : "AM";
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+  };
+
+  const handleStartTimeChange = (newStart: string) => {
+    setInitialStartTime(newStart);
+    const calc = calculateHours(newStart, initialEndTime);
+    if (calc > 0) setInitialLoggedHours(calc);
+  };
+
+  const handleEndTimeChange = (newEnd: string) => {
+    setInitialEndTime(newEnd);
+    const calc = calculateHours(initialStartTime, newEnd);
+    if (calc > 0) setInitialLoggedHours(calc);
+  };
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,21 +183,35 @@ export function CreateTaskModal({
       if (!selectedStageId) throw new Error("Please select a target stage.");
       if (!title.trim()) throw new Error("Please enter a task title.");
 
+      const payload: any = {
+        projectId: selectedProjectId,
+        stageId: selectedStageId,
+        title: title.trim(),
+        description: description.trim(),
+        assigneeId: assigneeId || null,
+        priority,
+        estimatedHours: Number(estimatedHours) || 0,
+        plannedStartDate: new Date(startDate),
+        plannedEndDate: new Date(endDate),
+        blockedBy,
+      };
+
+      if (logHoursNow && initialLoggedHours > 0) {
+        payload.loggedHours = Number(initialLoggedHours);
+        payload.status = "In Progress";
+        payload.initialWorkLog = {
+          startTime: formatTime12h(initialStartTime),
+          endTime: formatTime12h(initialEndTime),
+          hours: Number(initialLoggedHours),
+          date: startDate,
+          notes: initialNotes.trim() || description.trim() || title.trim(),
+        };
+      }
+
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId: selectedProjectId,
-          stageId: selectedStageId,
-          title: title.trim(),
-          description: description.trim(),
-          assigneeId: assigneeId || null,
-          priority,
-          estimatedHours: Number(estimatedHours) || 0,
-          plannedStartDate: new Date(startDate),
-          plannedEndDate: new Date(endDate),
-          blockedBy,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -429,6 +481,110 @@ export function CreateTaskModal({
                     </button>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* Card: Clockify Initial Work Log */}
+          <div className="p-4 rounded-2xl bg-[#e0f6fd]/30 dark:bg-[#00b0ef]/5 border border-[#00b0ef]/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#00b0ef]" />
+                <label className="text-xs font-bold text-slate-900 dark:text-white cursor-pointer flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={logHoursNow}
+                    onChange={(e) => setLogHoursNow(e.target.checked)}
+                    className="rounded accent-[#00b0ef]"
+                  />
+                  Log Initial Working Hours with Task (Clockify Style)
+                </label>
+              </div>
+              <span className="text-[10px] text-[#00b0ef] font-semibold">
+                {logHoursNow ? `${initialLoggedHours}h initial log` : "Disabled"}
+              </span>
+            </div>
+
+            {logHoursNow && (
+              <div className="space-y-3 pt-1 border-t border-[#00b0ef]/10">
+                {/* Preset Chips */}
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  {[
+                    { label: "10:00 AM – 12:00 PM (2h)", start: "10:00", end: "12:00", hours: 2 },
+                    { label: "09:30 AM – 01:30 PM (4h)", start: "09:30", end: "13:30", hours: 4 },
+                    { label: "02:00 PM – 05:00 PM (3h)", start: "14:00", end: "17:00", hours: 3 },
+                    { label: "05:30 PM – 07:30 PM (2h)", start: "17:30", end: "19:30", hours: 2 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        setInitialStartTime(preset.start);
+                        setInitialEndTime(preset.end);
+                        setInitialLoggedHours(preset.hours);
+                      }}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-semibold shrink-0 transition-colors border cursor-pointer ${
+                        initialStartTime === preset.start && initialEndTime === preset.end
+                          ? "bg-[#00b0ef] text-white border-[#00b0ef]"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-[#00b0ef]"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Start Time
+                    </Label>
+                    <Input
+                      type="time"
+                      value={initialStartTime}
+                      onChange={(e) => handleStartTimeChange(e.target.value)}
+                      className="h-9 text-xs rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      End Time
+                    </Label>
+                    <Input
+                      type="time"
+                      value={initialEndTime}
+                      onChange={(e) => handleEndTimeChange(e.target.value)}
+                      className="h-9 text-xs rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Logged Hours
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.25"
+                      min="0.25"
+                      value={initialLoggedHours}
+                      onChange={(e) => setInitialLoggedHours(Number(e.target.value))}
+                      className="h-9 text-xs font-bold text-[#00b0ef] rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    Session Accomplishment Notes (Optional)
+                  </Label>
+                  <Input
+                    placeholder="e.g. Worked from 10am to 12pm on this deliverable..."
+                    value={initialNotes}
+                    onChange={(e) => setInitialNotes(e.target.value)}
+                    className="h-9 text-xs rounded-xl"
+                  />
+                </div>
               </div>
             )}
           </div>

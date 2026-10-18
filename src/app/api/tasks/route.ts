@@ -4,6 +4,7 @@ import { Task, Project, Stage, Notification } from "@/models";
 import { requireAuth } from "@/lib/auth";
 import { createTaskSchema } from "@/types/schemas";
 import { logAuditEvent } from "@/lib/audit";
+import { syncProjectTracking } from "@/lib/lag-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,37 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const now = new Date();
+    const plannedStart = validated.plannedStartDate ? new Date(validated.plannedStartDate) : now;
+    const plannedEnd = validated.plannedEndDate
+      ? new Date(validated.plannedEndDate)
+      : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const initialHours = Number(validated.initialWorkLog?.hours ?? validated.loggedHours ?? 0);
+    const initialStatus =
+      validated.status || (initialHours > 0 ? "In Progress" : "To Do");
+    const initialPercent =
+      validated.percentComplete ??
+      (initialStatus === "Completed" ? 100 : initialHours > 0 ? 25 : 0);
+
+    const workLogs = [];
+    if (
+      initialHours > 0 ||
+      (validated.initialWorkLog &&
+        (validated.initialWorkLog.startTime || validated.initialWorkLog.notes))
+    ) {
+      workLogs.push({
+        userId: user.id as any,
+        userName: user.name || "User",
+        date: validated.initialWorkLog?.date ? new Date(validated.initialWorkLog.date) : now,
+        startTime: validated.initialWorkLog?.startTime || "",
+        endTime: validated.initialWorkLog?.endTime || "",
+        hours: initialHours,
+        notes: validated.initialWorkLog?.notes || validated.description || validated.title,
+        createdAt: now,
+      });
+    }
+
     const task = await Task.create({
       projectId: validated.projectId,
       stageId: validated.stageId,
@@ -80,18 +112,23 @@ export async function POST(req: NextRequest) {
       description: validated.description || "",
       assigneeId: validated.assigneeId || null,
       priority: validated.priority,
-      plannedStartDate: new Date(validated.plannedStartDate),
-      plannedEndDate: new Date(validated.plannedEndDate),
-      estimatedHours: validated.estimatedHours || 0,
-      loggedHours: 0,
-      percentComplete: 0,
-      status: "To Do",
+      plannedStartDate: plannedStart,
+      plannedEndDate: plannedEnd,
+      estimatedHours: validated.estimatedHours || (initialHours > 0 ? initialHours : 0),
+      loggedHours: initialHours,
+      percentComplete: initialPercent,
+      status: initialStatus,
+      workLogs: workLogs,
       blockedBy: validated.blockedBy || [],
       isAtRisk: false,
       lagInDays: 0,
       health: "Green",
       isArchived: false,
     });
+
+    if (initialHours > 0) {
+      await syncProjectTracking(task.projectId);
+    }
 
     // Notify assignee if assigned to someone else
     if (validated.assigneeId && validated.assigneeId.toString() !== user.id) {

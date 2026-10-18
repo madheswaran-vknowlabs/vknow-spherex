@@ -79,10 +79,22 @@ export const createTaskSchema = z.object({
   description: z.string().optional(),
   assigneeId: z.string().optional().nullable(),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]).default("Medium"),
-  plannedStartDate: z.string().or(z.date()),
-  plannedEndDate: z.string().or(z.date()),
+  plannedStartDate: z.string().or(z.date()).optional(),
+  plannedEndDate: z.string().or(z.date()).optional(),
   estimatedHours: z.number().min(0).default(0),
+  loggedHours: z.number().min(0).optional(),
+  percentComplete: z.number().min(0).max(100).optional(),
+  status: z.enum(["To Do", "In Progress", "Under Review", "Completed", "Blocked"]).optional(),
   blockedBy: z.array(z.string()).default([]),
+  initialWorkLog: z
+    .object({
+      startTime: z.string().optional(),
+      endTime: z.string().optional(),
+      hours: z.number().min(0).optional(),
+      date: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const updateTaskSchema = z.object({

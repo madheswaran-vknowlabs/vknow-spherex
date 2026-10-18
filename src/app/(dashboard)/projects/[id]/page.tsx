@@ -78,6 +78,65 @@ export default function ProjectDetailPage({
   const [taskBlockedBy, setTaskBlockedBy] = useState<string[]>([]);
   const [creatingTask, setCreatingTask] = useState(false);
 
+  // Clockify Quick Time Tracker Bar state
+  const [quickTitle, setQuickTitle] = useState("");
+  const [quickStartTime, setQuickStartTime] = useState("10:00");
+  const [quickEndTime, setQuickEndTime] = useState("12:00");
+  const [quickHours, setQuickHours] = useState(2);
+  const [quickAssignee, setQuickAssignee] = useState("");
+  const [quickDate, setQuickDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [quickSubmitting, setQuickSubmitting] = useState(false);
+
+  // Modal initial log hours (Clockify mode)
+  const [modalLogHoursNow, setModalLogHoursNow] = useState(true);
+  const [modalStartTime, setModalStartTime] = useState("10:00");
+  const [modalEndTime, setModalEndTime] = useState("12:00");
+  const [modalLoggedHours, setModalLoggedHours] = useState(2);
+  const [modalWorkNotes, setModalWorkNotes] = useState("");
+
+  const calculateDurationHours = (startStr: string, endStr: string) => {
+    if (!startStr || !endStr) return 0;
+    const [startH, startM] = startStr.split(":").map(Number);
+    const [endH, endM] = endStr.split(":").map(Number);
+    const diffMins = endH * 60 + endM - (startH * 60 + startM);
+    if (diffMins > 0) {
+      return Math.round((diffMins / 60) * 10) / 10;
+    }
+    return 0;
+  };
+
+  const formatTime12h = (time24: string) => {
+    if (!time24) return "";
+    const [h, m] = time24.split(":").map(Number);
+    const period = h >= 12 ? "PM" : "AM";
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+  };
+
+  const handleQuickStartTimeChange = (newStart: string) => {
+    setQuickStartTime(newStart);
+    const calculated = calculateDurationHours(newStart, quickEndTime);
+    if (calculated > 0) setQuickHours(calculated);
+  };
+
+  const handleQuickEndTimeChange = (newEnd: string) => {
+    setQuickEndTime(newEnd);
+    const calculated = calculateDurationHours(quickStartTime, newEnd);
+    if (calculated > 0) setQuickHours(calculated);
+  };
+
+  const handleModalStartTimeChange = (newStart: string) => {
+    setModalStartTime(newStart);
+    const calculated = calculateDurationHours(newStart, modalEndTime);
+    if (calculated > 0) setModalLoggedHours(calculated);
+  };
+
+  const handleModalEndTimeChange = (newEnd: string) => {
+    setModalEndTime(newEnd);
+    const calculated = calculateDurationHours(modalStartTime, newEnd);
+    if (calculated > 0) setModalLoggedHours(calculated);
+  };
+
   // Sign-off modal state
   const [isSignOffModalOpen, setIsSignOffModalOpen] = useState(false);
   const [signOffRemarks, setSignOffRemarks] = useState("");
@@ -226,10 +285,14 @@ export default function ProjectDetailPage({
     }
   };
 
-  // Handle Task Creation
-  const handleCreateTask = async (e: React.FormEvent) => {
+  // Handle Quick Add and Log Task (Clockify Style)
+  const handleQuickAddAndLogTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCreatingTask(true);
+    if (!quickTitle.trim()) {
+      alert("Please enter what you worked on or a task title.");
+      return;
+    }
+    setQuickSubmitting(true);
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
@@ -237,15 +300,74 @@ export default function ProjectDetailPage({
         body: JSON.stringify({
           projectId: project._id,
           stageId: currentSelectedStage._id,
-          title: taskTitle.trim(),
-          description: taskDesc.trim(),
-          assigneeId: taskAssignee || null,
-          priority: taskPriority,
-          estimatedHours: Number(taskEstHours) || 0,
-          plannedStartDate: new Date(taskStartDate),
-          plannedEndDate: new Date(taskEndDate),
-          blockedBy: taskBlockedBy,
+          title: quickTitle.trim(),
+          description: quickTitle.trim(),
+          assigneeId: quickAssignee || (session?.user as any)?.id || null,
+          priority: "Medium",
+          estimatedHours: quickHours > 0 ? quickHours : 4,
+          loggedHours: quickHours,
+          status: quickHours > 0 ? "In Progress" : "To Do",
+          initialWorkLog:
+            quickHours > 0
+              ? {
+                  startTime: formatTime12h(quickStartTime),
+                  endTime: formatTime12h(quickEndTime),
+                  hours: quickHours,
+                  date: quickDate,
+                  notes: quickTitle.trim(),
+                }
+              : undefined,
         }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setQuickTitle("");
+        fetchProject();
+      } else {
+        alert(data.error || "Failed to add task");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to add task");
+    } finally {
+      setQuickSubmitting(false);
+    }
+  };
+
+  // Handle Task Creation
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingTask(true);
+    try {
+      const payload: any = {
+        projectId: project._id,
+        stageId: currentSelectedStage._id,
+        title: taskTitle.trim(),
+        description: taskDesc.trim(),
+        assigneeId: taskAssignee || null,
+        priority: taskPriority,
+        estimatedHours: Number(taskEstHours) || 0,
+        plannedStartDate: new Date(taskStartDate),
+        plannedEndDate: new Date(taskEndDate),
+        blockedBy: taskBlockedBy,
+      };
+
+      if (modalLogHoursNow && modalLoggedHours > 0) {
+        payload.loggedHours = Number(modalLoggedHours);
+        payload.status = "In Progress";
+        payload.initialWorkLog = {
+          startTime: formatTime12h(modalStartTime),
+          endTime: formatTime12h(modalEndTime),
+          hours: Number(modalLoggedHours),
+          date: taskStartDate,
+          notes: modalWorkNotes.trim() || taskDesc.trim() || taskTitle.trim(),
+        };
+      }
+
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -255,6 +377,7 @@ export default function ProjectDetailPage({
         setTaskDesc("");
         setTaskAssignee("");
         setTaskBlockedBy([]);
+        setModalWorkNotes("");
         fetchProject();
       } else {
         alert(data.error || "Failed to create task");
@@ -834,8 +957,129 @@ export default function ProjectDetailPage({
                 className="bg-[#00b0ef] hover:bg-[#009ad4] text-white h-8 px-3 text-xs font-bold rounded-xl"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />
-                <span>Add Task</span>
+                <span>+ Detailed Task</span>
               </Button>
+            </div>
+
+            {/* Clockify-Style Quick Time Tracker & Add Task Bar */}
+            <div className="my-3 p-3 sm:p-3.5 rounded-2xl bg-[#f8fafc] dark:bg-slate-950/60 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between text-xs pb-1.5 border-b border-slate-200/60 dark:border-slate-800/80">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 text-xs">
+                    <Clock className="w-3.5 h-3.5 text-[#00b0ef]" />
+                    <span>Quick Time Tracker (Clockify Style)</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">
+                    &bull; Type deliverable, set hours, and add instantly
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  <span className="text-slate-400">Target Stage:</span>
+                  <span className="font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2 py-0.5 rounded-md">
+                    #{currentSelectedStage.order} {currentSelectedStage.name}
+                  </span>
+                </div>
+              </div>
+
+              <form onSubmit={handleQuickAddAndLogTask} className="space-y-2">
+                {/* Row 1: Broad task input + Add & Log button */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="What did you work on? (e.g. Design UI components in Figma, build authentication...)"
+                      value={quickTitle}
+                      onChange={(e) => setQuickTitle(e.target.value)}
+                      className="h-10 text-xs sm:text-sm rounded-xl font-medium pl-3 pr-24 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs placeholder:text-slate-400"
+                      required
+                    />
+                    <div className="absolute right-2 top-2 flex items-center gap-1">
+                      <span className="text-[10px] font-mono font-bold text-[#00b0ef] bg-[#e0f6fd] dark:bg-[#0f2e42] px-2 py-0.5 rounded-md">
+                        {quickHours}h Log
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={quickSubmitting}
+                    className="h-10 px-4 text-xs font-bold bg-[#00b0ef] hover:bg-[#009ad4] text-white shadow-xs rounded-xl shrink-0 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {quickSubmitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4 stroke-[2.5]" />
+                    )}
+                    <span>+ Add &amp; Log</span>
+                  </Button>
+                </div>
+
+                {/* Row 2: Time interval controls, Presets & Assignee */}
+                <div className="flex items-center justify-between gap-2 flex-wrap text-xs pt-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-slate-500 font-medium">Time Interval:</span>
+                    <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+                      <span className="text-[10px] text-slate-400">From</span>
+                      <input
+                        type="time"
+                        value={quickStartTime}
+                        onChange={(e) => handleQuickStartTimeChange(e.target.value)}
+                        className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden w-[72px]"
+                      />
+                      <span className="text-[10px] text-slate-400">To</span>
+                      <input
+                        type="time"
+                        value={quickEndTime}
+                        onChange={(e) => handleQuickEndTimeChange(e.target.value)}
+                        className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden w-[72px]"
+                      />
+                    </div>
+
+                    {/* Presets */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {[
+                        { label: "10am-12pm (2h)", start: "10:00", end: "12:00", hours: 2 },
+                        { label: "2pm-5pm (3h)", start: "14:00", end: "17:00", hours: 3 },
+                        { label: "9:30am-1:30pm (4h)", start: "09:30", end: "13:30", hours: 4 },
+                      ].map((p) => (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => {
+                            setQuickStartTime(p.start);
+                            setQuickEndTime(p.end);
+                            setQuickHours(p.hours);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer border ${
+                            quickStartTime === p.start && quickEndTime === p.end
+                              ? "bg-[#00b0ef] text-white border-[#00b0ef]"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-[#00b0ef]"
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Assignee select */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-slate-400">Assignee:</span>
+                    <select
+                      value={quickAssignee}
+                      onChange={(e) => setQuickAssignee(e.target.value)}
+                      className="h-8 px-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 max-w-[140px] truncate shadow-2xs"
+                    >
+                      <option value={(session?.user as any)?.id || ""}>Me ({session?.user?.name || "Assignee"})</option>
+                      <option value="">-- Unassigned --</option>
+                      {activeUsers.map((u) => (
+                        <option key={u._id} value={u._id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </form>
             </div>
 
             {/* Tasks List */}
@@ -1341,6 +1585,110 @@ export default function ProjectDetailPage({
                   </div>
                 </div>
               )}
+
+              {/* Card 5: Log Initial Working Hours (Clockify Mode) */}
+              <div className="p-4 rounded-2xl bg-[#e0f6fd]/30 dark:bg-[#00b0ef]/5 border border-[#00b0ef]/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#00b0ef]" />
+                    <Label className="text-xs font-bold text-slate-900 dark:text-white cursor-pointer flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={modalLogHoursNow}
+                        onChange={(e) => setModalLogHoursNow(e.target.checked)}
+                        className="rounded accent-[#00b0ef]"
+                      />
+                      Log Initial Work Session with this Task (Clockify Mode)
+                    </Label>
+                  </div>
+                  <span className="text-[10px] text-[#00b0ef] font-semibold">
+                    {modalLogHoursNow ? `${modalLoggedHours}h initial log` : "Disabled"}
+                  </span>
+                </div>
+
+                {modalLogHoursNow && (
+                  <div className="space-y-3 pt-1 border-t border-[#00b0ef]/10">
+                    {/* Preset Chips */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                      {[
+                        { label: "10:00 AM – 12:00 PM (2h)", start: "10:00", end: "12:00", hours: 2 },
+                        { label: "09:30 AM – 01:30 PM (4h)", start: "09:30", end: "13:30", hours: 4 },
+                        { label: "02:00 PM – 05:00 PM (3h)", start: "14:00", end: "17:00", hours: 3 },
+                        { label: "05:30 PM – 07:30 PM (2h)", start: "17:30", end: "19:30", hours: 2 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => {
+                            setModalStartTime(preset.start);
+                            setModalEndTime(preset.end);
+                            setModalLoggedHours(preset.hours);
+                          }}
+                          className={`px-2.5 py-1 rounded-xl text-xs font-semibold shrink-0 transition-colors border cursor-pointer ${
+                            modalStartTime === preset.start && modalEndTime === preset.end
+                              ? "bg-[#00b0ef] text-white border-[#00b0ef]"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-[#00b0ef]"
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                          Start Time
+                        </Label>
+                        <Input
+                          type="time"
+                          value={modalStartTime}
+                          onChange={(e) => handleModalStartTimeChange(e.target.value)}
+                          className="h-9 text-xs rounded-xl"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                          End Time
+                        </Label>
+                        <Input
+                          type="time"
+                          value={modalEndTime}
+                          onChange={(e) => handleModalEndTimeChange(e.target.value)}
+                          className="h-9 text-xs rounded-xl"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                          Logged Hours
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.25"
+                          min="0.25"
+                          value={modalLoggedHours}
+                          onChange={(e) => setModalLoggedHours(Number(e.target.value))}
+                          className="h-9 text-xs font-bold text-[#00b0ef] rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                        Work Accomplishment Notes (Optional)
+                      </Label>
+                      <Input
+                        placeholder="e.g. Worked from 10am to 12pm on this deliverable..."
+                        value={modalWorkNotes}
+                        onChange={(e) => setModalWorkNotes(e.target.value)}
+                        className="h-9 text-xs rounded-xl"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Modal Actions */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
